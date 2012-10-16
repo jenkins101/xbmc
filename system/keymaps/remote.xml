@@ -33,7 +33,7 @@
 <!--   in xbmc.log when they are pressed. Use your log to map custom buttons to actions.      -->
 <!--                                                                                          -->
 <!--  Axis Ids / Analog Controls                                                              -->
-<!--   Coming soon.                                                                           -->
+<!--   Coming soon. jenkins                                                                   -->
 <keymap>
   <global>
     <remote>
