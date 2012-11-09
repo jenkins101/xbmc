@@ -96,6 +96,7 @@
       <info>XBMC.ActivateWindow(SystemInfo)</info>
       <clear>XBMC.ActivateWindow(Weather)</clear>
       <menu>XBMC.ActivateWindow(Settings)</menu>
+      <start>FullScreen</start>
     </remote>
   </Home>
 <!--
