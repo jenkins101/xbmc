@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -15,9 +15,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,6 +67,7 @@ public:
   double           dur;    // last frame expected duration
   CDVDStreamInfo   hint;   // stream hints, used to notice stream changes
   void*            stream; // pointer or integer, identifying stream playing. if it changes stream changed
+  int              changes; // remembered counter from stream to track codec changes
   bool             inited;
   bool             started; // has the player started
   const StreamType type;
@@ -90,6 +90,7 @@ public:
     dur    = DVD_NOPTS_VALUE;
     hint.Clear();
     stream = NULL;
+    changes = 0;
     inited = false;
     started = false;
     startpts  = DVD_NOPTS_VALUE;
@@ -194,6 +195,7 @@ public:
   virtual void GetVideoAspectRatio(float& fAR)                  { fAR = m_dvdPlayerVideo.GetAspectRatio(); }
   virtual bool CanRecord();
   virtual bool IsRecording();
+  virtual bool CanPause();
   virtual bool Record(bool bOnOff);
   virtual void SetAVDelay(float fValue = 0.0f);
   virtual float GetAVDelay();
@@ -276,8 +278,8 @@ protected:
   virtual void OnExit();
   virtual void Process();
 
-  bool OpenAudioStream(int iStream, int source);
-  bool OpenVideoStream(int iStream, int source);
+  bool OpenAudioStream(int iStream, int source, bool reset = true);
+  bool OpenVideoStream(int iStream, int source, bool reset = true);
   bool OpenSubtitleStream(int iStream, int source);
   bool OpenTeletextStream(int iStream, int source);
   bool CloseAudioStream(bool bWaitForBuffers);
@@ -332,7 +334,7 @@ protected:
 
   bool OpenInputStream();
   bool OpenDemuxStream();
-  void OpenDefaultStreams();
+  void OpenDefaultStreams(bool reset = true);
 
   void UpdateApplication(double timeout);
   void UpdatePlayState(double timeout);
@@ -414,6 +416,8 @@ protected:
       chapter_count = 0;
       canrecord     = false;
       recording     = false;
+      canpause      = false;
+      canseek       = false;
       demux_video   = "";
       demux_audio   = "";
       cache_bytes   = 0;
@@ -437,6 +441,9 @@ protected:
 
     bool canrecord;           // can input stream record
     bool recording;           // are we currently recording
+
+    bool canpause;            // pvr: can pause the current playing item
+    bool canseek;             // pvr: can seek in the current playing item
 
     std::string demux_video;
     std::string demux_audio;

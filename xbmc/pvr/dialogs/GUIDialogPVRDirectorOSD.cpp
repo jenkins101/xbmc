@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,30 +38,4 @@ CGUIDialogPVRDirectorOSD::CGUIDialogPVRDirectorOSD()
 
 CGUIDialogPVRDirectorOSD::~CGUIDialogPVRDirectorOSD()
 {
-}
-
-bool CGUIDialogPVRDirectorOSD::OnAction(const CAction& action)
-{
-  if (action.GetID() == ACTION_PREVIOUS_MENU || action.GetID() == ACTION_PARENT_DIR)
-  {
-    Close();
-    return true;
-  }
-
-  return CGUIDialog::OnAction(action);
-}
-
-bool CGUIDialogPVRDirectorOSD::OnMessage(CGUIMessage& message)
-{
-  return CGUIDialog::OnMessage(message);
-}
-
-void CGUIDialogPVRDirectorOSD::OnInitWindow()
-{
-  CGUIDialog::OnInitWindow();
-}
-
-void CGUIDialogPVRDirectorOSD::OnDeinitWindow(int nextWindowID)
-{
-  CGUIDialog::OnDeinitWindow(nextWindowID);
 }

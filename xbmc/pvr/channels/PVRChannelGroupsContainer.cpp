@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -210,17 +209,17 @@ CPVRChannelGroupPtr CPVRChannelGroupsContainer::GetSelectedGroup(bool bRadio) co
   return Get(bRadio)->GetSelectedGroup();
 }
 
-CPVRChannelPtr CPVRChannelGroupsContainer::GetByUniqueID(int iClientChannelNumber, int iClientID)
+CPVRChannelPtr CPVRChannelGroupsContainer::GetByUniqueID(int iUniqueChannelId, int iClientID)
 {
   CPVRChannelPtr channel;
   CPVRChannelGroupPtr channelgroup = GetGroupAllTV();
   if (channelgroup)
-    channel = channelgroup->GetByClient(iClientChannelNumber, iClientID);
+    channel = channelgroup->GetByClient(iUniqueChannelId, iClientID);
 
   if (!channelgroup || !channel)
     channelgroup = GetGroupAllRadio();
   if (channelgroup)
-    channel = channelgroup->GetByClient(iClientChannelNumber, iClientID);
+    channel = channelgroup->GetByClient(iUniqueChannelId, iClientID);
 
   return channel;
 }
@@ -262,7 +261,7 @@ void CPVRChannelGroupsContainer::SearchMissingChannelIcons(void)
   if (channelgroupradio)
     channelgroupradio->SearchAndSetChannelIcons(true);
 
-  CGUIDialogOK::ShowAndGetInput(19103,0,20177,0);
+  CGUIDialogOK::ShowAndGetInput(19167,0,20177,0);
 }
 
 CFileItemPtr CPVRChannelGroupsContainer::GetLastPlayedChannel(void) const

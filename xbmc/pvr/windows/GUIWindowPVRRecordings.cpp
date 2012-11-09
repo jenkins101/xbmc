@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,20 +60,20 @@ void CGUIWindowPVRRecordings::ResetObservers(void)
   g_infoManager.RegisterObserver(this);
 }
 
-CStdString CGUIWindowPVRRecordings::GetResumeString(CFileItem item)
+CStdString CGUIWindowPVRRecordings::GetResumeString(const CFileItem& item)
 {
   CStdString resumeString;
   if (item.IsPVRRecording())
   {
 
     // First try to find the resume position on the back-end, if that fails use video database
-    CPVRRecording recording = *item.GetPVRRecordingInfoTag();
-    int positionInSeconds = g_PVRManager.GetRecordingLastPlayedPosition(recording);
+    int positionInSeconds = item.GetPVRRecordingInfoTag()->GetLastPlayedPosition();
     // If the back-end does report a saved position then make sure there is a corresponding resume bookmark
     if (positionInSeconds > 0)
     {
       CBookmark bookmark;
       bookmark.timeInSeconds = positionInSeconds;
+      bookmark.totalTimeInSeconds = (double)item.GetPVRRecordingInfoTag()->GetDuration();
       CVideoDatabase db;
       if (db.Open())
       {
@@ -159,7 +158,7 @@ bool CGUIWindowPVRRecordings::OnAction(const CAction &action)
   {
     if (m_parent->m_vecItems->GetPath() != "pvr://recordings/")
       m_parent->GoParentFolder();
-    else
+    else if (action.GetID() == ACTION_NAV_BACK)
       g_windowManager.PreviousWindow();
 
     return true;
@@ -222,7 +221,7 @@ void CGUIWindowPVRRecordings::UpdateData(bool bUpdateSelectedFile /* = true */)
 
 void CGUIWindowPVRRecordings::Notify(const Observable &obs, const ObservableMessage msg)
 {
-  if (msg == ObservableMessageRecordings || msg == ObservableMessageTimers || msg == ObservableMessageCurrentItem)
+  if (msg == ObservableMessageTimers || msg == ObservableMessageCurrentItem)
   {
     if (IsVisible())
       SetInvalid();
@@ -232,7 +231,7 @@ void CGUIWindowPVRRecordings::Notify(const Observable &obs, const ObservableMess
   else if (msg == ObservableMessageRecordings || msg == ObservableMessageTimersReset)
   {
     if (IsVisible())
-      UpdateData(false);
+      UpdateData();
     else
       m_bUpdateRequired = true;
   }

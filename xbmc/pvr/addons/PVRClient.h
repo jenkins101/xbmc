@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,7 +65,7 @@ namespace PVR
      * @brief Initialise the instance of this add-on.
      * @param iClientId The ID of this add-on.
      */
-    bool Create(int iClientId);
+    ADDON_STATUS Create(int iClientId);
 
     /*!
      * @return True when the dll for this add-on was loaded, false otherwise (e.g. unresolved symbols)
@@ -358,6 +357,11 @@ namespace PVR
     int64_t GetStreamLength(void);
 
     /*!
+     * @brief (Un)Pause a stream
+     */
+    void PauseStream(bool bPaused);
+
+    /*!
      * @return The channel number on the server of the live stream that's currently being read.
      */
     int GetCurrentClientChannel(void);
@@ -382,6 +386,16 @@ namespace PVR
      * @return The requested URL.
      */
     CStdString GetLiveStreamURL(const CPVRChannel &channel);
+
+    /*!
+     * @brief Check whether PVR backend supports pausing the currently playing stream
+     */
+    bool CanPauseStream(void) const;
+
+    /*!
+     * @brief Check whether PVR backend supports seeking for the currently playing stream
+     */
+    bool CanSeekStream(void) const;
 
     //@}
     /** @name PVR recording stream methods */
@@ -559,5 +573,7 @@ namespace PVR
     bool           m_bIsPlayingRecording;
     CPVRRecording  m_playingRecording;
     ADDON::AddonVersion m_apiVersion;
+    bool           m_bCanPauseStream;
+    bool           m_bCanSeekStream;
   };
 }

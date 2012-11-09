@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,8 @@
 #include "ApplicationMessenger.h"
 #include "FileItem.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
+#include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogOK.h"
 #include "GUIDialogPVRGuideInfo.h"
 #include "ViewState.h"
@@ -63,6 +64,8 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
   {
   case GUI_MSG_WINDOW_DEINIT:
     {
+      g_PVRManager.SetPlayingGroup(m_group);
+      SetLastSelectedItem(m_group->GroupID());
       Clear();
     }
     break;
@@ -75,8 +78,12 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
         Close();
         return true;
       }
+
+      m_group = GetPlayingGroup();
+
       CGUIWindow::OnMessage(message);
-      Update();
+      Update(true);
+
       return true;
     }
     break;
@@ -112,15 +119,11 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
 
       if (iAction == ACTION_MOVE_RIGHT || iAction == ACTION_MOVE_LEFT)
       {
-          CPVRChannelPtr channel;
-        g_PVRManager.GetCurrentChannel(channel);
-
-        CPVRChannelGroupPtr group = g_PVRManager.GetPlayingGroup(channel->IsRadio());
+        CPVRChannelGroupPtr group = GetPlayingGroup();
         CPVRChannelGroupPtr nextGroup = iAction == ACTION_MOVE_RIGHT ? group->GetNextGroup() : group->GetPreviousGroup();
-
         g_PVRManager.SetPlayingGroup(nextGroup);
+        SetLastSelectedItem(group->GroupID());
 
-        Clear();
         Update();
 
         return true;
@@ -132,7 +135,19 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
   return CGUIDialog::OnMessage(message);
 }
 
+CPVRChannelGroupPtr CGUIDialogPVRChannelsOSD::GetPlayingGroup()
+{
+  CPVRChannelPtr channel;
+  g_PVRManager.GetCurrentChannel(channel);
+  return g_PVRManager.GetPlayingGroup(channel->IsRadio());
+}
+
 void CGUIDialogPVRChannelsOSD::Update()
+{
+  CGUIDialogPVRChannelsOSD::Update(false);
+}
+
+void CGUIDialogPVRChannelsOSD::Update(bool selectPlayingChannel)
 {
   // lock our display, as this window is rendered from the player thread
   g_graphicsContext.Lock();
@@ -153,7 +168,7 @@ void CGUIDialogPVRChannelsOSD::Update()
   {
     group->GetMembers(*m_vecItems);
     m_viewControl.SetItems(*m_vecItems);
-    m_viewControl.SetSelectedItem(group->GetIndex(*channel));
+    m_viewControl.SetSelectedItem(selectPlayingChannel ? group->GetIndex(*channel) : GetLastSelectedItem(group->GroupID()));
   }
 
   g_graphicsContext.Unlock();
@@ -191,12 +206,16 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
     if (!g_PVRManager.CheckParentalLock(*channel) ||
         !g_application.m_pPlayer->SwitchChannel(*channel))
     {
-      Close(true);
+      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error,
+              g_localizeStrings.Get(19166), // PVR information
+              g_localizeStrings.Get(19035)); // This channel cannot be played. Check the log for details.
       return;
     }
   }
   else
     CApplicationMessenger::Get().PlayFile(*pItem);
+
+  m_group = GetPlayingGroup();
 
   CloseOrSelect(item);
 }
@@ -263,4 +282,17 @@ void CGUIDialogPVRChannelsOSD::Notify(const Observable &obs, const ObservableMes
     m_viewControl.SetItems(*m_vecItems);
     g_graphicsContext.Unlock();
   }
+}
+
+void CGUIDialogPVRChannelsOSD::SetLastSelectedItem(int iGroupID)
+{
+  m_groupSelectedItems[iGroupID] = m_viewControl.GetSelectedItem();
+}
+
+int CGUIDialogPVRChannelsOSD::GetLastSelectedItem(int iGroupID) const
+{
+  map<int,int>::const_iterator it = m_groupSelectedItems.find(iGroupID);
+  if(it != m_groupSelectedItems.end())
+    return it->second;
+  return 0;
 }

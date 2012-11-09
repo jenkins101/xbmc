@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 #include "AddonStatusHandler.h"
@@ -104,7 +103,7 @@ void CAddonStatusHandler::Process()
       pDialog->SetLine(2, 24073);
 
       //send message and wait for user input
-      ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_YES_NO, g_windowManager.GetActiveWindow()};
+      ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_YES_NO, (unsigned int)g_windowManager.GetActiveWindow()};
       CApplicationMessenger::Get().SendMessage(tMsg, true);
 
       if (pDialog->IsConfirmed())
@@ -121,7 +120,7 @@ void CAddonStatusHandler::Process()
     pDialog->SetLine(1, 24074);
 
     //send message and wait for user input
-    ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_OK, g_windowManager.GetActiveWindow()};
+    ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_OK, (unsigned int)g_windowManager.GetActiveWindow()};
     CApplicationMessenger::Get().SendMessage(tMsg, true);
 
     CAddonMgr::Get().GetCallbackForType(m_addon->Type())->RequestRestart(m_addon, true);
@@ -138,7 +137,7 @@ void CAddonStatusHandler::Process()
     pDialogYesNo->SetLine(3, m_message);
 
     //send message and wait for user input
-    ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_YES_NO, g_windowManager.GetActiveWindow()};
+    ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_YES_NO, (unsigned int)g_windowManager.GetActiveWindow()};
     CApplicationMessenger::Get().SendMessage(tMsg, true);
 
     if (!pDialogYesNo->IsConfirmed()) return;
@@ -166,7 +165,7 @@ void CAddonStatusHandler::Process()
     pDialog->SetLine(3, m_message);
 
     //send message and wait for user input
-    ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_OK, g_windowManager.GetActiveWindow()};
+    ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_OK, (unsigned int)g_windowManager.GetActiveWindow()};
     CApplicationMessenger::Get().SendMessage(tMsg, true);
   }
 }

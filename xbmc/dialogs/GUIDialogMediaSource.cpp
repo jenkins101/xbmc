@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -23,7 +22,6 @@
 #include "guilib/GUIKeyboardFactory.h"
 #include "GUIDialogFileBrowser.h"
 #include "video/windows/GUIWindowVideoBase.h"
-#include "video/dialogs/GUIDialogVideoScan.h"
 #include "guilib/GUIWindowManager.h"
 #include "Util.h"
 #include "utils/URIUtils.h"
@@ -60,6 +58,7 @@ CGUIDialogMediaSource::CGUIDialogMediaSource(void)
     : CGUIDialog(WINDOW_DIALOG_MEDIA_SOURCE, "DialogMediaSource.xml")
 {
   m_paths =  new CFileItemList;
+  m_loadType = KEEP_IN_MEMORY;
 }
 
 CGUIDialogMediaSource::~CGUIDialogMediaSource()
@@ -154,7 +153,7 @@ bool CGUIDialogMediaSource::ShowAndAddMediaSource(const CStdString &type)
     }
     share.FromNameAndPaths(type, strName, dialog->GetPaths());
     if (dialog->m_paths->Size() > 0) {
-      share.m_strThumbnailImage = dialog->m_paths->Get(0)->GetThumbnailImage();
+      share.m_strThumbnailImage = dialog->m_paths->Get(0)->GetArt("thumb");
     }
     g_settings.AddShare(type, share);
   }
@@ -396,7 +395,8 @@ void CGUIDialogMediaSource::OnOK()
     m_confirmed = true;
     Close();
     if (m_type == "video" && !URIUtils::IsLiveTV(share.strPath) && 
-        !share.strPath.Left(6).Equals("rss://"))
+        !share.strPath.Left(6).Equals("rss://") &&
+        !share.strPath.Left(7).Equals("upnp://"))
     {
       CGUIWindowVideoBase::OnAssignContent(share.strPath);
     }
@@ -547,4 +547,13 @@ vector<CStdString> CGUIDialogMediaSource::GetPaths()
     }
   }
   return paths;
+}
+
+void CGUIDialogMediaSource::OnDeinitWindow(int nextWindowID)
+{
+  CGUIDialog::OnDeinitWindow(nextWindowID);
+
+  // clear paths container
+  CGUIMessage msg(GUI_MSG_LABEL_RESET, GetID(), CONTROL_PATH, 0);
+  OnMessage(msg);
 }

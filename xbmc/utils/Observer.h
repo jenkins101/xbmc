@@ -15,14 +15,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "threads/CriticalSection.h"
-#include "interfaces/AnnouncementManager.h"
 
 class Observable;
 class ObservableMessageJob;
@@ -87,7 +85,7 @@ protected:
   CCriticalSection          m_obsCritSection;  /*!< mutex */
 };
 
-class Observable : public ANNOUNCEMENT::IAnnouncer
+class Observable
 {
   friend class ObservableMessageJob;
 
@@ -116,9 +114,8 @@ public:
   /*!
    * @brief Send a message to all observers when m_bObservableChanged is true.
    * @param message The message to send.
-   * @param bAsync True to send the message async, using the jobmanager.
    */
-  virtual void NotifyObservers(const ObservableMessage message = ObservableMessageNone, bool bAsync = false);
+  virtual void NotifyObservers(const ObservableMessage message = ObservableMessageNone);
 
   /*!
    * @brief Mark an observable changed.
@@ -133,8 +130,6 @@ public:
    */
   virtual bool IsObserving(const Observer &obs) const;
 
-  virtual void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data);
-
 protected:
   /*!
    * @brief Send a message to all observer when m_bObservableChanged is true.
@@ -146,5 +141,4 @@ protected:
   bool                    m_bObservableChanged; /*!< true when the observable is marked as changed, false otherwise */
   std::vector<Observer *> m_observers;          /*!< all observers */
   CCriticalSection        m_obsCritSection;     /*!< mutex */
-  bool                    m_bAsyncAllowed;      /*!< true when async messages are allowed, false otherwise */
 };

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -283,22 +282,8 @@ CDateTime CDateTime::GetCurrentDateTime()
 
 CDateTime CDateTime::GetUTCDateTime()
 {
-  TIME_ZONE_INFORMATION tz;
-
   CDateTime time(GetCurrentDateTime());
-  switch(GetTimeZoneInformation(&tz))
-  {
-    case TIME_ZONE_ID_DAYLIGHT:
-        time += CDateTimeSpan(0, 0, tz.Bias + tz.DaylightBias, 0);
-        break;
-    case TIME_ZONE_ID_STANDARD:
-        time += CDateTimeSpan(0, 0, tz.Bias + tz.StandardBias, 0);
-        break;
-    case TIME_ZONE_ID_UNKNOWN:
-        time += CDateTimeSpan(0, 0, tz.Bias, 0);
-        break;
-  }
-
+  time += GetTimezoneBias();
   return time;
 }
 
@@ -880,24 +865,43 @@ CStdString CDateTime::GetAsSaveString() const
 
 void CDateTime::SetFromUTCDateTime(const CDateTime &dateTime)
 {
-  TIME_ZONE_INFORMATION tz;
   CDateTime tmp(dateTime);
-
-  switch(GetTimeZoneInformation(&tz))
-  {
-    case TIME_ZONE_ID_DAYLIGHT:
-        tmp -= CDateTimeSpan(0, 0, tz.Bias + tz.DaylightBias, 0);
-        break;
-    case TIME_ZONE_ID_STANDARD:
-        tmp -= CDateTimeSpan(0, 0, tz.Bias + tz.StandardBias, 0);
-        break;
-    case TIME_ZONE_ID_UNKNOWN:
-        tmp -= CDateTimeSpan(0, 0, tz.Bias, 0);
-        break;
-  }
+  tmp -= GetTimezoneBias();
 
   m_time = tmp.m_time;
   m_state = tmp.m_state;
+}
+
+static bool bGotTimezoneBias = false;
+
+void CDateTime::ResetTimezoneBias(void)
+{
+  bGotTimezoneBias = false;
+}
+
+CDateTimeSpan CDateTime::GetTimezoneBias(void)
+{
+  static CDateTimeSpan timezoneBias;
+
+  if (!bGotTimezoneBias)
+  {
+    bGotTimezoneBias = true;
+    TIME_ZONE_INFORMATION tz;
+    switch(GetTimeZoneInformation(&tz))
+    {
+      case TIME_ZONE_ID_DAYLIGHT:
+        timezoneBias = CDateTimeSpan(0, 0, tz.Bias + tz.DaylightBias, 0);
+        break;
+      case TIME_ZONE_ID_STANDARD:
+        timezoneBias = CDateTimeSpan(0, 0, tz.Bias + tz.StandardBias, 0);
+        break;
+      case TIME_ZONE_ID_UNKNOWN:
+        timezoneBias = CDateTimeSpan(0, 0, tz.Bias, 0);
+        break;
+    }
+  }
+
+  return timezoneBias;
 }
 
 void CDateTime::SetFromUTCDateTime(const time_t &dateTime)
@@ -1329,22 +1333,8 @@ CStdString CDateTime::GetAsLocalizedDateTime(bool longDate/*=false*/, bool withS
 
 CDateTime CDateTime::GetAsUTCDateTime() const
 {
-  TIME_ZONE_INFORMATION tz;
-
   CDateTime time(m_time);
-  switch(GetTimeZoneInformation(&tz))
-  {
-    case TIME_ZONE_ID_DAYLIGHT:
-        time += CDateTimeSpan(0, 0, tz.Bias + tz.DaylightBias, 0);
-        break;
-    case TIME_ZONE_ID_STANDARD:
-        time += CDateTimeSpan(0, 0, tz.Bias + tz.StandardBias, 0);
-        break;
-    case TIME_ZONE_ID_UNKNOWN:
-        time += CDateTimeSpan(0, 0, tz.Bias, 0);
-        break;
-  }
-
+  time += GetTimezoneBias();
   return time;
 }
 

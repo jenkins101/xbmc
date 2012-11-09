@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -158,12 +157,12 @@ void CGUIDialogProfileSettings::OnSettingChanged(SettingInfo &setting)
     if (!m_strThumb.IsEmpty())
     {
       CFileItemPtr item(new CFileItem("thumb://Current", false));
-      item->SetThumbnailImage(m_strThumb);
+      item->SetArt("thumb", m_strThumb);
       item->SetLabel(g_localizeStrings.Get(20016));
       items.Add(item);
     }
     CFileItemPtr item(new CFileItem("thumb://None", false));
-    item->SetThumbnailImage(m_strDefaultImage);
+    item->SetArt("thumb", m_strDefaultImage);
     item->SetLabel(g_localizeStrings.Get(20018));
     items.Add(item);
     if (CGUIDialogFileBrowser::ShowAndGetImage(items,shares,g_localizeStrings.Get(1030),strThumb) &&

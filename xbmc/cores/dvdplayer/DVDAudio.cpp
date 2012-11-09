@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,68 @@
 #include "settings/Settings.h"
 
 using namespace std;
+
+
+CPTSOutputQueue::CPTSOutputQueue()
+{
+  Flush();
+}
+
+void CPTSOutputQueue::Add(double pts, double delay, double duration)
+{
+  CSingleLock lock(m_sync);
+
+  // don't accept a re-add, since that would cause time moving back
+  double last = m_queue.empty() ? m_current.pts : m_queue.back().pts;
+  if(last == pts)
+    return;
+
+  TPTSItem item;
+  item.pts = pts;
+  item.timestamp = CDVDClock::GetAbsoluteClock() + delay;
+  item.duration = duration;
+
+  // first one is applied directly
+  if(m_queue.empty() && m_current.pts == DVD_NOPTS_VALUE)
+    m_current = item;
+  else
+    m_queue.push(item);
+
+  // call function to make sure the queue
+  // doesn't grow should nobody call it
+  Current();
+}
+void CPTSOutputQueue::Flush()
+{
+  CSingleLock lock(m_sync);
+
+  while( !m_queue.empty() ) m_queue.pop();
+  m_current.pts = DVD_NOPTS_VALUE;
+  m_current.timestamp = 0.0;
+  m_current.duration = 0.0;
+}
+
+double CPTSOutputQueue::Current()
+{
+  CSingleLock lock(m_sync);
+
+  if(!m_queue.empty() && m_current.pts == DVD_NOPTS_VALUE)
+  {
+    m_current = m_queue.front();
+    m_queue.pop();
+  }
+
+  while( !m_queue.empty() && CDVDClock::GetAbsoluteClock() >= m_queue.front().timestamp )
+  {
+    m_current = m_queue.front();
+    m_queue.pop();
+  }
+
+  if( m_current.timestamp == 0 ) return m_current.pts;
+
+  return m_current.pts + min(m_current.duration, (CDVDClock::GetAbsoluteClock() - m_current.timestamp));
+}
+
 
 CDVDAudio::CDVDAudio(volatile bool &bStop)
   : m_bStop(bStop)
@@ -115,6 +176,7 @@ void CDVDAudio::Destroy()
   m_iBitsPerSample = 0;
   m_bPassthrough = false;
   m_bPaused = true;
+  m_time.Flush();
 }
 
 DWORD CDVDAudio::AddPacketsRenderer(unsigned char* data, DWORD len, CSingleLock &lock)
@@ -204,6 +266,10 @@ DWORD CDVDAudio::AddPackets(const DVDAudioFrame &audioframe)
     m_iBufferSize = len;
     memcpy(m_pBuffer, data, len);
   }
+
+  double time_added = DVD_SEC_TO_TIME(m_SecondsPerByte * (data - audioframe.data));
+  m_time.Add(audioframe.pts, GetDelay() - time_added, audioframe.duration);
+
   return total;
 }
 
@@ -277,6 +343,7 @@ void CDVDAudio::Pause()
 {
   CSingleLock lock (m_critSection);
   if (m_pAudioStream) m_pAudioStream->Pause();
+  m_time.Flush();
 }
 
 void CDVDAudio::Resume()
@@ -307,6 +374,7 @@ void CDVDAudio::Flush()
     m_pAudioStream->Flush();
   }
   m_iBufferSize = 0;
+  m_time.Flush();
 }
 
 bool CDVDAudio::IsValidFormat(const DVDAudioFrame &audioframe)
@@ -354,4 +422,11 @@ double CDVDAudio::GetCacheTotal()
   if(!m_pAudioStream)
     return 0.0;
   return m_pAudioStream->GetCacheTotal();
+}
+
+void CDVDAudio::SetPlayingPts(double pts)
+{
+  CSingleLock lock (m_critSection);
+  m_time.Flush();
+  m_time.Add(pts, GetDelay(), 0);
 }

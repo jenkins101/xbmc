@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ TEST(TestRegExp, GetReplaceString)
 
   EXPECT_TRUE(regex.RegComp("^(Test)\\s*(.*)\\."));
   EXPECT_EQ(0, regex.RegFind("Test string."));
-  EXPECT_STREQ("string", regex.GetReplaceString("\\2"));
+  EXPECT_STREQ("string", regex.GetReplaceString("\\2").c_str());
 }
 
 TEST(TestRegExp, GetFindLen)

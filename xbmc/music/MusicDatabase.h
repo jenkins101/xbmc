@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 /*!
@@ -134,10 +133,6 @@ public:
   bool GetSongsByArtist(int idArtist, bool includeFeatured, std::vector<long>& songs);
   bool GetArtistsBySong(int idSong, bool includeFeatured, std::vector<long>& artists);
 
-  bool GetArbitraryQuery(const CStdString& strQuery, const CStdString& strOpenRecordSet, const CStdString& strCloseRecordSet,
-                         const CStdString& strOpenRecord, const CStdString& strCloseRecord, const CStdString& strOpenField, const CStdString& strCloseField, CStdString& strResult);
-  bool ArbitraryExec(const CStdString& strExec);
-
   bool GetTop100(const CStdString& strBaseDir, CFileItemList& items);
   bool GetTop100Albums(VECALBUMS& albums);
   bool GetTop100AlbumSongs(const CStdString& strBaseDir, CFileItemList& item);
@@ -155,16 +150,19 @@ public:
   bool GetPaths(std::set<CStdString> &paths);
   bool SetPathHash(const CStdString &path, const CStdString &hash);
   bool GetPathHash(const CStdString &path, CStdString &hash);
-  bool GetGenresNav(const CStdString& strBaseDir, CFileItemList& items);
+  bool GetGenresNav(const CStdString& strBaseDir, CFileItemList& items, const Filter &filter = Filter(), bool countOnly = false);
   bool GetYearsNav(const CStdString& strBaseDir, CFileItemList& items);
-  bool GetArtistsNav(const CStdString& strBaseDir, CFileItemList& items, bool albumArtistsOnly = false, int idGenre = -1, int idAlbum = -1, int idSong = -1, const SortDescription &sortDescription = SortDescription());
-  bool GetAlbumsNav(const CStdString& strBaseDir, CFileItemList& items, int idGenre = -1, int idArtist = -1, const SortDescription &sortDescription = SortDescription());
+  bool GetArtistsNav(const CStdString& strBaseDir, CFileItemList& items, bool albumArtistsOnly = false, int idGenre = -1, int idAlbum = -1, int idSong = -1, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
+  bool GetCommonNav(const CStdString &strBaseDir, const CStdString &table, const CStdString &labelField, CFileItemList &items, const Filter &filter /* = Filter() */, bool countOnly /* = false */);
+  bool GetAlbumTypesNav(const CStdString &strBaseDir, CFileItemList &items, const Filter &filter = Filter(), bool countOnly = false);
+  bool GetMusicLabelsNav(const CStdString &strBaseDir, CFileItemList &items, const Filter &filter = Filter(), bool countOnly = false);
+  bool GetAlbumsNav(const CStdString& strBaseDir, CFileItemList& items, int idGenre = -1, int idArtist = -1, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
   bool GetAlbumsByYear(const CStdString &strBaseDir, CFileItemList& items, int year);
   bool GetSongsNav(const CStdString& strBaseDir, CFileItemList& items, int idGenre, int idArtist,int idAlbum, const SortDescription &sortDescription = SortDescription());
   bool GetSongsByYear(const CStdString& baseDir, CFileItemList& items, int year);
   bool GetSongsByWhere(const CStdString &baseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription());
-  bool GetAlbumsByWhere(const CStdString &baseDir, const Filter &filter, CFileItemList &items, const SortDescription &sortDescription = SortDescription());
-  bool GetArtistsByWhere(const CStdString& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription());
+  bool GetAlbumsByWhere(const CStdString &baseDir, const Filter &filter, CFileItemList &items, const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
+  bool GetArtistsByWhere(const CStdString& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
   bool GetRandomSong(CFileItem* item, int& idSong, const Filter &filter);
   int GetKaraokeSongsCount();
   int GetSongsCount(const Filter &filter = Filter());
@@ -270,7 +268,7 @@ public:
    */
   std::string GetArtistArtForItem(int mediaId, const std::string &mediaType, const std::string &artType);
 
-  virtual bool GetFilter(const CDbUrl &musicUrl, Filter &filter);
+  virtual bool GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription &sorting);
 
 protected:
   std::map<CStdString, int> m_artistCache;
@@ -280,7 +278,7 @@ protected:
   std::map<CStdString, CAlbum> m_albumCache;
 
   virtual bool CreateTables();
-  virtual int GetMinVersion() const { return 27; };
+  virtual int GetMinVersion() const { return 30; };
   const char *GetBaseDBName() const { return "MyMusic"; };
 
   int AddSong(const CSong& song, bool bCheck = true, int idAlbum = -1);
@@ -373,7 +371,8 @@ private:
     album_strType,
     album_strThumbURL,
     album_iRating,
-    album_bCompilation
+    album_bCompilation,
+    album_iTimesPlayed
   } AlbumFields;
 
   enum _ArtistFields

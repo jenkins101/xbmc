@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,15 +47,15 @@
 
 #include "OMXPlayer.h"
 
-class COMXMsgAudioCodecChange : public CDVDMsg
+class COMXMsgVideoCodecChange : public CDVDMsg
 {
 public:
-  COMXMsgAudioCodecChange(const CDVDStreamInfo &hints, COMXVideo *codec)
+  COMXMsgVideoCodecChange(const CDVDStreamInfo &hints, COMXVideo *codec)
     : CDVDMsg(GENERAL_STREAMCHANGE)
     , m_codec(codec)
     , m_hints(hints)
   {}
- ~COMXMsgAudioCodecChange()
+ ~COMXMsgVideoCodecChange()
   {
     delete m_codec;
   }
@@ -91,11 +90,12 @@ OMXPlayerVideo::OMXPlayerVideo(OMXClock *av_clock,
   m_flags                 = 0;
   m_bAllowFullscreen      = false;
   m_iCurrentPts           = DVD_NOPTS_VALUE;
-  m_fFrameRate            = 25.0f;
   m_iVideoDelay           = 0;
   m_droptime              = 0.0;
   m_dropbase              = 0.0;
   m_autosync              = 1;
+  m_fForcedAspectRatio    = 0.0f;
+  m_send_eos              = false;
   m_messageQueue.SetMaxDataSize(10 * 1024 * 1024);
   m_messageQueue.SetMaxTimeSize(8.0);
 
@@ -122,7 +122,7 @@ bool OMXPlayerVideo::OpenStream(CDVDStreamInfo &hints)
   m_hints       = hints;
   m_Deinterlace = ( g_settings.m_currentVideoSettings.m_DeinterlaceMode == VS_DEINTERLACEMODE_OFF ) ? false : true;
   m_flush       = false;
-  m_hdmi_clock_sync = g_guiSettings.GetBool("videoplayer.adjustrefreshrate");
+  m_hdmi_clock_sync = (g_guiSettings.GetInt("videoplayer.adjustrefreshrate") != ADJUST_REFRESHRATE_OFF);
   m_started     = false;
   m_stalled     = m_messageQueue.GetPacketCount(CDVDMsg::DEMUXER_PACKET) == 0;
   m_autosync    = 1;
@@ -138,7 +138,7 @@ bool OMXPlayerVideo::OpenStream(CDVDStreamInfo &hints)
   }
 
   if(m_messageQueue.IsInited())
-    m_messageQueue.Put(new COMXMsgAudioCodecChange(hints, NULL), 0);
+    m_messageQueue.Put(new COMXMsgVideoCodecChange(hints, NULL), 0);
   else
   {
     if(!OpenStream(hints, NULL))
@@ -158,6 +158,7 @@ bool OMXPlayerVideo::OpenStream(CDVDStreamInfo &hints)
   */
 
   m_open        = true;
+  m_send_eos    = false;
 
   return true;
 }
@@ -194,8 +195,8 @@ bool OMXPlayerVideo::CloseStream(bool bWaitForBuffers)
 
   m_av_clock->Lock();
   m_av_clock->OMXStop(false);
-  m_omxVideo.Close();
   m_av_clock->HasVideo(false);
+  m_omxVideo.Close();
   m_av_clock->OMXReset(false);
   m_av_clock->UnLock();
 
@@ -344,8 +345,14 @@ void OMXPlayerVideo::Output(int iGroupId, double pts, bool bDropPacket)
     CLog::Log(LOGDEBUG,"%s - change configuration. %dx%d. framerate: %4.2f. format: BYPASS",
         __FUNCTION__, m_width, m_height, m_fps);
 
-    if(!g_renderManager.Configure(m_video_width, m_video_height, 
-          m_video_width, m_video_height, m_fps, flags, format, 0,
+    unsigned int iDisplayWidth  = m_hints.width;
+    unsigned int iDisplayHeight = m_hints.height;
+    /* use forced aspect if any */
+    if( m_fForcedAspectRatio != 0.0f )
+      iDisplayWidth = (int) (iDisplayHeight * m_fForcedAspectRatio);
+
+    if(!g_renderManager.Configure(m_hints.width, m_hints.height,
+          iDisplayWidth, iDisplayHeight, m_fps, flags, format, 0,
           m_hints.orientation))
     {
       CLog::Log(LOGERROR, "%s - failed to configure renderer", __FUNCTION__);
@@ -543,6 +550,11 @@ void OMXPlayerVideo::Process()
           Sleep(1);
       }
     }
+    else if (pMsg->IsType(CDVDMsg::VIDEO_SET_ASPECT))
+    {
+      CLog::Log(LOGDEBUG, "COMXPlayerVideo - CDVDMsg::VIDEO_SET_ASPECT");
+      m_fForcedAspectRatio = *((CDVDMsgDouble*)pMsg);
+    }
     else if (pMsg->IsType(CDVDMsg::GENERAL_RESET))
     {
       CLog::Log(LOGDEBUG, "COMXPlayerVideo - CDVDMsg::GENERAL_RESET");
@@ -575,7 +587,7 @@ void OMXPlayerVideo::Process()
     }
     else if (pMsg->IsType(CDVDMsg::GENERAL_STREAMCHANGE))
     {
-      COMXMsgAudioCodecChange* msg(static_cast<COMXMsgAudioCodecChange*>(pMsg));
+      COMXMsgVideoCodecChange* msg(static_cast<COMXMsgVideoCodecChange*>(pMsg));
       OpenStream(msg->m_hints, msg->m_codec);
       msg->m_codec = NULL;
     }
@@ -621,22 +633,38 @@ void OMXPlayerVideo::Process()
           m_stalled = false;
         }
 
+        double output_pts = 0;
         // validate picture timing,
         // if both dts/pts invalid, use pts calulated from picture.iDuration
         // if pts invalid use dts, else use picture.pts as passed
         if (pPacket->dts == DVD_NOPTS_VALUE && pPacket->pts == DVD_NOPTS_VALUE)
-          pPacket->pts = pts;
+          output_pts = pts;
         else if (pPacket->pts == DVD_NOPTS_VALUE)
-          pPacket->pts = pPacket->dts;
+          output_pts = pPacket->dts;
+        else
+          output_pts = pPacket->pts;
 
         if(pPacket->pts != DVD_NOPTS_VALUE)
           pPacket->pts += m_iVideoDelay;
 
+        if(output_pts != DVD_NOPTS_VALUE)
+          output_pts += m_iVideoDelay;
+
         if(pPacket->duration == 0)
           pPacket->duration = frametime;
 
-        m_omxVideo.Decode(pPacket->pData, pPacket->iSize, pPacket->pts, pPacket->pts);
-        Output(pPacket->iGroupId, pPacket->pts, bRequestDrop);
+        switch(m_hints.codec)
+        {
+          case CODEC_ID_MPEG1VIDEO:
+          case CODEC_ID_MPEG2VIDEO:
+            m_omxVideo.Decode(pPacket->pData, pPacket->iSize, pPacket->pts, pPacket->pts);
+            break;
+          default:
+            m_omxVideo.Decode(pPacket->pData, pPacket->iSize, output_pts, output_pts);
+            break;
+        }
+
+        Output(pPacket->iGroupId, output_pts, bRequestDrop);
 
         if(m_started == false)
         {
@@ -683,38 +711,42 @@ bool OMXPlayerVideo::OpenDecoder()
     CLog::Log(LOGINFO, "OMXPlayerVideo::OpenDecoder : Invalid framerate %d, using forced 25fps and just trust timestamps\n", (int)m_fFrameRate);
     m_fFrameRate = 25;
   }
+  // use aspect in stream always
+  m_fForcedAspectRatio = m_hints.aspect;
 
   m_av_clock->Lock();
   m_av_clock->OMXStop(false);
-  if(!m_omxVideo.Open(m_hints, m_av_clock, m_Deinterlace, m_hdmi_clock_sync))
+
+  bool bVideoDecoderOpen = m_omxVideo.Open(m_hints, m_av_clock, m_Deinterlace, m_hdmi_clock_sync);
+
+  if(!bVideoDecoderOpen)
   {
-    CLog::Log(LOGERROR, "OMXPlayerAudio : Error open video output");
-    m_av_clock->HasVideo(false);
-    m_av_clock->OMXReset(false);
-    m_av_clock->UnLock();
-    return false;
+    CLog::Log(LOGERROR, "OMXPlayerVideo : Error open video output");
+    m_omxVideo.Close();
   }
   else
+  {
     CLog::Log(LOGINFO, "OMXPlayerVideo::OpenDecoder : Video codec %s width %d height %d profile %d fps %f\n",
         m_omxVideo.GetDecoderName().c_str() , m_hints.width, m_hints.height, m_hints.profile, m_fFrameRate);
 
-  m_codecname = m_omxVideo.GetDecoderName();
+    m_codecname = m_omxVideo.GetDecoderName();
 
-  // if we are closer to ntsc version of framerate, let gpu know
-  int   iFrameRate  = (int)(m_fFrameRate + 0.5f);
-  bool  bNtscFreq  = fabs(m_fFrameRate * 1001.0f / 1000.0f - iFrameRate) < fabs(m_fFrameRate - iFrameRate);
-  char  response[80], command[80];
-  sprintf(command, "hdmi_ntsc_freqs %d", bNtscFreq);
-  CLog::Log(LOGINFO, "OMXPlayerVideo::OpenDecoder fps: %f %s\n", m_fFrameRate, command);
-  m_DllBcmHost.vc_gencmd(response, sizeof response, command);
+    // if we are closer to ntsc version of framerate, let gpu know
+    int   iFrameRate  = (int)(m_fFrameRate + 0.5f);
+    bool  bNtscFreq  = fabs(m_fFrameRate * 1001.0f / 1000.0f - iFrameRate) < fabs(m_fFrameRate - iFrameRate);
+    char  response[80], command[80];
+    sprintf(command, "hdmi_ntsc_freqs %d", bNtscFreq);
+    CLog::Log(LOGINFO, "OMXPlayerVideo::OpenDecoder fps: %f %s\n", m_fFrameRate, command);
+    m_DllBcmHost.vc_gencmd(response, sizeof response, command);
 
-  if(m_av_clock)
-    m_av_clock->SetRefreshRate(m_fFrameRate);
+    if(m_av_clock)
+      m_av_clock->SetRefreshRate(m_fFrameRate);
+  }
 
-  m_av_clock->HasVideo(true);
+  m_av_clock->HasVideo(bVideoDecoderOpen);
   m_av_clock->OMXReset(false);
   m_av_clock->UnLock();
-  return true;
+  return bVideoDecoderOpen;
 }
 
 int  OMXPlayerVideo::GetDecoderBufferSize()
@@ -729,7 +761,9 @@ int  OMXPlayerVideo::GetDecoderFreeSpace()
 
 void OMXPlayerVideo::WaitCompletion()
 {
-  m_omxVideo.WaitCompletion();
+  if(!m_send_eos)
+    m_omxVideo.WaitCompletion();
+  m_send_eos = true;
 }
 
 void OMXPlayerVideo::SetSpeed(int speed)
@@ -806,7 +840,7 @@ void OMXPlayerVideo::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
     dst_rect.y2 *= yscale;
   }
 
-  if(!(m_flags & CONF_FLAGS_FORMAT_SBS) && !!(m_flags & CONF_FLAGS_FORMAT_TB))
+  if(!(m_flags & CONF_FLAGS_FORMAT_SBS) && !(m_flags & CONF_FLAGS_FORMAT_TB))
     m_omxVideo.SetVideoRect(SrcRect, m_dst_rect);
 }
 

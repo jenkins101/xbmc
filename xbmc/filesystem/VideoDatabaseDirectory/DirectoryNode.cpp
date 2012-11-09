@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -370,10 +369,7 @@ void CDirectoryNode::AddQueuingFolder(CFileItemList& items) const
 
 bool CDirectoryNode::CanCache() const
 {
-  //  Only cache the directorys in the root
-  //NODE_TYPE childnode=GetChildType();
-  //NODE_TYPE node=GetType();
-
-  // something should probably be cached
-  return true;//(childnode==NODE_TYPE_TITLE_MOVIES || childnode==NODE_TYPE_EPISODES || childnode == NODE_TYPE_SEASONS || childnode == NODE_TYPE_TITLE_TVSHOWS);
+  // no caching is required - the list is cached in CGUIMediaWindow::GetDirectory
+  // if it was slow to fetch anyway.
+  return false;
 }

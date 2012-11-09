@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,7 @@ TEST(TestPerformanceSample, General)
   EXPECT_GT(a.getFreq(), (int64_t)0);
 
   std::cout << "Estimated Error: " <<
-    testing::PrintToString(a.GetEstimatedError()) << "\n";
-  std::cout << "Start: " << testing::PrintToString(a.getStart()) << "\n";
-  std::cout << "Frequency: " << testing::PrintToString(a.getFreq()) << "\n";
+    testing::PrintToString(a.GetEstimatedError()) << std::endl;
+  std::cout << "Start: " << testing::PrintToString(a.getStart()) << std::endl;
+  std::cout << "Frequency: " << testing::PrintToString(a.getFreq()) << std::endl;
 }

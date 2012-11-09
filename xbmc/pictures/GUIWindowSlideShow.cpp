@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,6 +42,8 @@
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
+#include "interfaces/AnnouncementManager.h"
+#include "pictures/PictureInfoTag.h"
 
 using namespace XFILE;
 
@@ -144,6 +145,7 @@ CGUIWindowSlideShow::CGUIWindowSlideShow(void)
   m_pBackgroundLoader = NULL;
   m_slides = new CFileItemList;
   m_Resolution = RES_INVALID;
+  m_loadType = KEEP_IN_MEMORY;
   Reset();
 }
 
@@ -151,6 +153,64 @@ CGUIWindowSlideShow::~CGUIWindowSlideShow(void)
 {
   Reset();
   delete m_slides;
+}
+
+void CGUIWindowSlideShow::AnnouncePlayerPlay(const CFileItemPtr& item)
+{
+  CVariant param;
+  param["player"]["speed"] = 1;
+  param["player"]["playerid"] = PLAYLIST_PICTURE;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPlay", item, param);
+}
+
+void CGUIWindowSlideShow::AnnouncePlayerPause(const CFileItemPtr& item)
+{
+  CVariant param;
+  param["player"]["speed"] = 0;
+  param["player"]["playerid"] = PLAYLIST_PICTURE;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPause", item, param);
+}
+
+void CGUIWindowSlideShow::AnnouncePlayerStop(const CFileItemPtr& item)
+{
+  CVariant param;
+  param["player"]["playerid"] = PLAYLIST_PICTURE;
+  param["end"] = true;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnStop", item, param);
+}
+
+void CGUIWindowSlideShow::AnnouncePlaylistRemove(int pos)
+{
+  CVariant data;
+  data["playlistid"] = PLAYLIST_PICTURE;
+  data["position"] = pos;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnRemove", data);
+}
+
+void CGUIWindowSlideShow::AnnouncePlaylistClear()
+{
+  CVariant data;
+  data["playlistid"] = PLAYLIST_PICTURE;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnClear", data);
+}
+
+void CGUIWindowSlideShow::AnnouncePlaylistAdd(const CFileItemPtr& item, int pos)
+{
+  CVariant data;
+  data["playlistid"] = PLAYLIST_PICTURE;
+  data["position"] = pos;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Playlist, "xbmc", "OnAdd", item, data);
+}
+
+void CGUIWindowSlideShow::AnnouncePropertyChanged(const std::string &strProperty, const CVariant &value)
+{
+  if (strProperty.empty() || value.isNull())
+    return;
+
+  CVariant data;
+  data["player"]["playerid"] = PLAYLIST_PICTURE;
+  data["property"][strProperty] = value;
+  ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Player, "xbmc", "OnPropertyChanged", data);
 }
 
 bool CGUIWindowSlideShow::IsPlaying() const
@@ -184,11 +244,25 @@ void CGUIWindowSlideShow::Reset()
   m_iDirection = 1;
   CSingleLock lock(m_slideSection);
   m_slides->Clear();
+  AnnouncePlaylistClear();
   m_Resolution = g_graphicsContext.GetVideoResolution();
 }
 
-void CGUIWindowSlideShow::FreeResources()
-{ // wait for any outstanding picture loads
+void CGUIWindowSlideShow::OnDeinitWindow(int nextWindowID)
+{ 
+  if (m_Resolution != g_guiSettings.m_LookAndFeelResolution)
+  {
+    //FIXME: Use GUI resolution for now
+    //g_graphicsContext.SetVideoResolution(g_guiSettings.m_LookAndFeelResolution, TRUE);
+  }
+
+  //   Reset();
+  if (nextWindowID != WINDOW_PICTURES)
+    m_ImageLib.Unload();
+
+  g_windowManager.ShowOverlay(OVERLAY_STATE_SHOWN);
+
+  // wait for any outstanding picture loads
   if (m_pBackgroundLoader)
   {
     // sleep until the loader finishes loading the current pic
@@ -205,11 +279,20 @@ void CGUIWindowSlideShow::FreeResources()
   m_Image[0].Close();
   m_Image[1].Close();
   g_infoManager.ResetCurrentSlide();
+
+  CGUIWindow::OnDeinitWindow(nextWindowID);
 }
 
 void CGUIWindowSlideShow::Add(const CFileItem *picture)
 {
   CFileItemPtr item(new CFileItem(*picture));
+  if (!item->HasVideoInfoTag() && !item->HasPictureInfoTag())
+  {
+    // item without tag; assume it is a picture and force tag generation
+    item->GetPictureInfoTag();
+  }
+  AnnouncePlaylistAdd(item, m_slides->Size());
+
   m_slides->Add(item);
 }
 
@@ -295,6 +378,8 @@ void CGUIWindowSlideShow::StartSlideShow(bool screensaver)
   m_bSlideShow = true;
   m_iDirection = 1;
   m_bScreensaver = screensaver;
+  if (m_slides->Size())
+    AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
 }
 
 void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &regions)
@@ -381,7 +466,7 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
     GetCheckedSize((float)g_settings.m_ResInfo[m_Resolution].iWidth * m_fZoom,
                    (float)g_settings.m_ResInfo[m_Resolution].iHeight * m_fZoom,
                     maxWidth, maxHeight);
-    if (!m_slides->Get(m_iCurrentSlide)->IsVideo())
+    if (!m_slides->Get(m_iCurrentSlide)->IsVideo()) 
       m_pBackgroundLoader->LoadPic(m_iCurrentPic, m_iCurrentSlide, m_slides->Get(m_iCurrentSlide)->GetPath(), maxWidth, maxHeight);
   }
 
@@ -487,6 +572,7 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
 
     m_iCurrentSlide = m_iNextSlide;
     m_iNextSlide    = GetNextSlide();
+    AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
 
     m_iZoomFactor = 1;
     m_fZoom = 1.0f;
@@ -615,6 +701,8 @@ bool CGUIWindowSlideShow::OnAction(const CAction &action)
   case ACTION_PREVIOUS_MENU:
   case ACTION_NAV_BACK:
   case ACTION_STOP:
+    if (m_slides->Size())
+      AnnouncePlayerStop(m_slides->Get(m_iCurrentSlide));
     g_windowManager.PreviousWindow();
     break;
 
@@ -650,7 +738,16 @@ bool CGUIWindowSlideShow::OnAction(const CAction &action)
 
   case ACTION_PAUSE:
     if (m_bSlideShow)
+    {
       m_bPause = !m_bPause;
+      if (m_slides->Size())
+      {
+        if (m_bPause)
+          AnnouncePlayerPause(m_slides->Get(m_iCurrentSlide));
+        else
+          AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
+      }
+    }
     break;
 
   case ACTION_PLAYER_PLAY:
@@ -660,7 +757,11 @@ bool CGUIWindowSlideShow::OnAction(const CAction &action)
       m_bPause = false;
     }
     else if (m_bPause)
+    {
       m_bPause = false;
+      if (m_slides->Size())
+        AnnouncePlayerPlay(m_slides->Get(m_iCurrentSlide));
+    }
     break;
 
   case ACTION_ZOOM_OUT:
@@ -722,23 +823,6 @@ bool CGUIWindowSlideShow::OnMessage(CGUIMessage& message)
 {
   switch ( message.GetMessage() )
   {
-  case GUI_MSG_WINDOW_DEINIT:
-    {
-      if (m_Resolution != g_guiSettings.m_LookAndFeelResolution)
-      {
-        //FIXME: Use GUI resolution for now
-        //g_graphicsContext.SetVideoResolution(g_guiSettings.m_LookAndFeelResolution, TRUE);
-      }
-
-      //   Reset();
-      if (message.GetParam1() != WINDOW_PICTURES)
-        m_ImageLib.Unload();
-
-      g_windowManager.ShowOverlay(OVERLAY_STATE_SHOWN);
-      FreeResources();
-    }
-    break;
-
   case GUI_MSG_WINDOW_INIT:
     {
       m_Resolution = (RESOLUTION) g_guiSettings.GetInt("pictures.displayresolution");
@@ -958,6 +1042,8 @@ void CGUIWindowSlideShow::Shuffle()
   m_iCurrentSlide = 0;
   m_iNextSlide = 1;
   m_bShuffled = true;
+
+  AnnouncePropertyChanged("shuffled", true);
 }
 
 int CGUIWindowSlideShow::NumSlides() const

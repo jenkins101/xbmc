@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,6 +51,30 @@ TEST(TestCPUInfo, getCPUModel)
   EXPECT_STRNE("", s.c_str());
 }
 
+TEST(TestCPUInfo, getCPUBogoMips)
+{
+  std::string s = g_cpuInfo.getCPUBogoMips();
+  EXPECT_STRNE("", s.c_str());
+}
+
+TEST(TestCPUInfo, getCPUHardware)
+{
+  std::string s = g_cpuInfo.getCPUHardware();
+  EXPECT_STRNE("", s.c_str());
+}
+
+TEST(TestCPUInfo, getCPURevision)
+{
+  std::string s = g_cpuInfo.getCPURevision();
+  EXPECT_STRNE("", s.c_str());
+}
+
+TEST(TestCPUInfo, getCPUSerial)
+{
+  std::string s = g_cpuInfo.getCPUSerial();
+  EXPECT_STRNE("", s.c_str());
+}
+
 TEST(TestCPUInfo, CoreInfo)
 {
   ASSERT_TRUE(g_cpuInfo.HasCoreId(0));
@@ -75,5 +98,5 @@ TEST(TestCPUInfo, getUsedPercentage_output)
   CCPUInfo c;
   Sleep(1); /* TODO: Support option from main that sets this parameter */
   int r = c.getUsedPercentage();
-  std::cout << "Percentage: " << testing::PrintToString(r) << "\n";
+  std::cout << "Percentage: " << testing::PrintToString(r) << std::endl;
 }

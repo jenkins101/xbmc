@@ -9,7 +9,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -23,9 +23,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -274,6 +273,10 @@
 #define ACTION_NEXT_CONTROL           181
 #define ACTION_PREV_CONTROL           182
 #define ACTION_CHANNEL_SWITCH         183
+#define ACTION_CHANNEL_UP             184
+#define ACTION_CHANNEL_DOWN           185
+#define ACTION_NEXT_CHANNELGROUP      186
+#define ACTION_PREVIOUS_CHANNELGROUP  187
 
 #define ACTION_TOGGLE_FULLSCREEN      199 // switch 2 desktop resolution
 #define ACTION_TOGGLE_WATCHED         200 // Toggle watched status (videos)
@@ -310,6 +313,8 @@
 #define ACTION_SUBTITLE_VSHIFT_DOWN   231 // shift down subtitles in DVDPlayer
 #define ACTION_SUBTITLE_ALIGN         232 // toggle vertical alignment of subtitles
 
+#define ACTION_FILTER                 233
+
 // Window ID defines to make the code a bit more readable
 #define WINDOW_INVALID                     9999
 #define WINDOW_HOME                       10000
@@ -342,9 +347,12 @@
 
 #define WINDOW_LOGIN_SCREEN               10029
 #define WINDOW_SETTINGS_PROFILES          10034
+#define WINDOW_SKIN_SETTINGS              10035
 
 #define WINDOW_ADDON_BROWSER              10040
 
+#define WINDOW_SCREENSAVER_DIM               97
+#define WINDOW_DEBUG_INFO                    98
 #define WINDOW_DIALOG_POINTER             10099
 #define WINDOW_DIALOG_YES_NO              10100
 #define WINDOW_DIALOG_PROGRESS            10101
@@ -356,7 +364,6 @@
 #define WINDOW_DIALOG_NUMERIC             10109
 #define WINDOW_DIALOG_GAMEPAD             10110
 #define WINDOW_DIALOG_BUTTON_MENU         10111
-#define WINDOW_DIALOG_MUSIC_SCAN          10112
 #define WINDOW_DIALOG_MUTE_BUG            10113
 #define WINDOW_DIALOG_PLAYER_CONTROLS     10114
 #define WINDOW_DIALOG_SEEK_BAR            10115
@@ -372,7 +379,6 @@
 #define WINDOW_DIALOG_PROFILE_SETTINGS    10130
 #define WINDOW_DIALOG_LOCK_SETTINGS       10131
 #define WINDOW_DIALOG_CONTENT_SETTINGS    10132
-#define WINDOW_DIALOG_VIDEO_SCAN          10133
 #define WINDOW_DIALOG_FAVOURITES          10134
 #define WINDOW_DIALOG_SONG_INFO           10135
 #define WINDOW_DIALOG_SMART_PLAYLIST_EDITOR 10136
@@ -391,6 +397,7 @@
 #define WINDOW_DIALOG_PERIPHERAL_MANAGER  10149
 #define WINDOW_DIALOG_PERIPHERAL_SETTINGS 10150
 #define WINDOW_DIALOG_EXT_PROGRESS        10151
+#define WINDOW_DIALOG_MEDIA_FILTER        10152
 
 #define WINDOW_MUSIC_PLAYLIST             10500
 #define WINDOW_MUSIC_FILES                10501
@@ -413,6 +420,7 @@
 #define WINDOW_DIALOG_PVR_OSD_GUIDE       10611
 #define WINDOW_DIALOG_PVR_OSD_DIRECTOR    10612
 #define WINDOW_DIALOG_PVR_OSD_CUTTER      10613
+#define WINDOW_FULLSCREEN_LIVETV          10614 // virtual window for PVR specific keymap bindings in fullscreen playback (which internally uses WINDOW_FULLSCREEN_VIDEO)
 // PVR_WINDOW VIEWS = 10694-10699
 
 //#define WINDOW_VIRTUAL_KEYBOARD           11000

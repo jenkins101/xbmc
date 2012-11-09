@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,6 +40,17 @@ bool XMLUtils::GetUInt(const TiXmlNode* pRootNode, const char* strTag, uint32_t&
   if (!pNode || !pNode->FirstChild()) return false;
   uintValue = atol(pNode->FirstChild()->Value());
   return true;
+}
+
+bool XMLUtils::GetUInt(const TiXmlNode* pRootNode, const char* strTag, uint32_t &value, const uint32_t min, const uint32_t max)
+{
+  if (GetUInt(pRootNode, strTag, value))
+  {
+    if (value < min) value = min;
+    if (value > max) value = max;
+    return true;
+  }
+  return false;
 }
 
 bool XMLUtils::GetLong(const TiXmlNode* pRootNode, const char* strTag, long& lLongValue)

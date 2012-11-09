@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2011 Team XBMC
+ *      Copyright (C) 2011-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,7 @@ bool CHTTPJsonRpcHandler::CheckHTTPRequest(const HTTPRequest &request)
 int CHTTPJsonRpcHandler::HandleHTTPRequest(const HTTPRequest &request)
 {
   CHTTPClient client;
+  bool isRequest = false;
   if (request.method == POST)
   {
     string contentType = CWebServer::GetRequestHeaderValue(request.connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_CONTENT_TYPE);
@@ -51,8 +51,24 @@ int CHTTPJsonRpcHandler::HandleHTTPRequest(const HTTPRequest &request)
       return MHD_YES;
     }
 
-    m_response = CJSONRPC::MethodCall(m_request, request.webserver, &client);
+    isRequest = true;
   }
+  else if (request.method == GET)
+  {
+    map<string, string> arguments;
+    if (CWebServer::GetRequestHeaderValues(request.connection, MHD_GET_ARGUMENT_KIND, arguments) > 0)
+    {
+      map<string, string>::const_iterator argument = arguments.find("request");
+      if (argument != arguments.end() && !argument->second.empty())
+      {
+        m_request = argument->second;
+        isRequest = true;
+      }
+    }
+  }
+
+  if (isRequest)
+    m_response = CJSONRPC::MethodCall(m_request, request.webserver, &client);
   else
   {
     // get the whole output of JSONRPC.Introspect

@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -23,11 +22,13 @@
 
 #include "Application.h"
 #include "ApplicationMessenger.h"
+#include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "filesystem/StackDirectory.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/dialogs/GUIDialogPVRGuideInfo.h"
@@ -196,7 +197,7 @@ bool CGUIWindowPVRCommon::OnAction(const CAction &action)
   bool bReturn = false;
 
   if (action.GetID() == ACTION_NAV_BACK ||
-      action.GetID() == ACTION_PARENT_DIR)
+      action.GetID() == ACTION_PREVIOUS_MENU)
   {
     g_windowManager.PreviousWindow();
     bReturn = true;
@@ -554,7 +555,7 @@ bool CGUIWindowPVRCommon::ActionDeleteChannel(CFileItem *item)
 
   /* show a confirmation dialog */
   CGUIDialogYesNo* pDialog = (CGUIDialogYesNo*) g_windowManager.GetWindow(WINDOW_DIALOG_YES_NO);
-  if (pDialog)
+  if (!pDialog)
     return false;
   pDialog->SetHeading(19039);
   pDialog->SetLine(0, "");
@@ -611,7 +612,7 @@ bool CGUIWindowPVRCommon::ShowTimerSettings(CFileItem *item)
 
 bool CGUIWindowPVRCommon::PlayRecording(CFileItem *item, bool bPlayMinimized /* = false */)
 {
-  if (item->GetPath().Left(17) != "pvr://recordings/")
+  if (!item->HasPVRRecordingInfoTag())
     return false;
 
   CStdString stream = item->GetPVRRecordingInfoTag()->m_strStreamURL;
@@ -671,6 +672,11 @@ bool CGUIWindowPVRCommon::PlayRecording(CFileItem *item, bool bPlayMinimized /* 
 
 bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = false */)
 {
+  if (item->m_bIsFolder)
+  {
+    return false;
+  }
+
   if (item->GetPath() == g_application.CurrentFile())
   {
     CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, m_parent->GetID());
@@ -680,7 +686,7 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
 
   g_settings.m_bStartVideoWindowed = bPlayMinimized;
 
-  if (item->GetPath().Left(17) == "pvr://recordings/")
+  if (item->HasPVRRecordingInfoTag())
   {
     return PlayRecording(item, bPlayMinimized);
   }
@@ -690,7 +696,7 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
 
     CPVRChannel *channel = item->HasPVRChannelInfoTag() ? item->GetPVRChannelInfoTag() : NULL;
 
-    if (g_PVRManager.CheckParentalLock(*channel))
+    if (channel && g_PVRManager.CheckParentalLock(*channel))
     {
       /* try a fast switch */
       if (channel && (g_PVRManager.IsPlayingTV() || g_PVRManager.IsPlayingRadio()) &&
@@ -709,7 +715,9 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
 
     if (!bSwitchSuccessful)
     {
-      CGUIDialogOK::ShowAndGetInput(19033,0,19035,0);
+      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error,
+              g_localizeStrings.Get(19166), // PVR information
+              g_localizeStrings.Get(19035)); // This channel cannot be played. Check the log for details.
       return false;
     }
   }
@@ -855,6 +863,7 @@ bool CGUIWindowPVRCommon::OnContextButtonFind(CFileItem *item, CONTEXT_BUTTON bu
       m_parent->SetActiveView(m_parent->m_windowSearch);
       m_parent->m_windowSearch->UpdateData();
       m_parent->SetLabel(m_iControlList, 0);
+      m_parent->m_viewControl.SetFocused();
     }
   }
 

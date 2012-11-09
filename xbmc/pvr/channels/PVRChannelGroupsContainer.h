@@ -15,9 +15,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -157,11 +156,11 @@ namespace PVR
 
     /*!
      * @brief Get a channel given it's channel ID from all containers.
-     * @param iClientChannelNumber The channel number on the client.
+     * @param iUniqueChannelId The unique channel id on the client.
      * @param iClientID The ID of the client.
      * @return The channel or NULL if it wasn't found.
      */
-    CPVRChannelPtr GetByUniqueID(int iClientChannelNumber, int iClientID);
+    CPVRChannelPtr GetByUniqueID(int iUniqueChannelId, int iClientID);
 
     /*!
      * @brief Get a channel given it's channel ID from all containers.

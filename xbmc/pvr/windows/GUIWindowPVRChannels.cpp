@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -172,7 +171,7 @@ void CGUIWindowPVRChannels::Notify(const Observable &obs, const ObservableMessag
   else if (msg == ObservableMessageChannelGroupReset)
   {
     if (IsVisible())
-      UpdateData(false);
+      UpdateData(true);
     else
       m_bUpdateRequired = true;
   }
@@ -205,6 +204,8 @@ void CGUIWindowPVRChannels::UpdateData(bool bUpdateSelectedFile /* = true */)
   /* lock the graphics context while updating */
   CSingleLock graphicsLock(g_graphicsContext);
 
+  CPVRChannelGroupPtr selectedGroup = SelectedGroup();
+
   m_iSelected = m_parent->m_viewControl.GetSelectedItem();
   m_parent->m_viewControl.Clear();
   m_parent->m_vecItems->Clear();
@@ -213,6 +214,8 @@ void CGUIWindowPVRChannels::UpdateData(bool bUpdateSelectedFile /* = true */)
   CPVRChannelGroupPtr currentGroup = g_PVRManager.GetPlayingGroup(m_bRadio);
   if (!currentGroup)
     return;
+
+  SetSelectedGroup(currentGroup);
 
   CStdString strPath;
   strPath.Format("pvr://channels/%s/%s/",
@@ -459,15 +462,15 @@ bool CGUIWindowPVRChannels::OnContextButtonSetThumb(CFileItem *item, CONTEXT_BUT
     {
       /* add the current thumb, if available */
       CFileItemPtr current(new CFileItem("thumb://Current", false));
-      current->SetThumbnailImage(channel->IconPath());
+      current->SetArt("thumb", channel->IconPath());
       current->SetLabel(g_localizeStrings.Get(20016));
       items.Add(current);
     }
-    else if (item->HasThumbnail())
+    else if (item->HasArt("thumb"))
     {
       /* already have a thumb that the share doesn't know about - must be a local one, so we may as well reuse it */
       CFileItemPtr current(new CFileItem("thumb://Current", false));
-      current->SetThumbnailImage(item->GetThumbnailImage());
+      current->SetArt("thumb", item->GetArt("thumb"));
       current->SetLabel(g_localizeStrings.Get(20016));
       items.Add(current);
     }

@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -623,7 +622,7 @@ const char* CAddonCallbacksGUI::Window_GetProperty(void *addonData, GUIHANDLE ha
   string value = pWindow->GetProperty(lowerKey.ToLower()).asString();
   Unlock();
 
-  return value.c_str();
+  return strdup(value.c_str());
 }
 
 int CAddonCallbacksGUI::Window_GetPropertyInt(void *addonData, GUIHANDLE handle, const char *key)
@@ -1113,7 +1112,7 @@ GUIHANDLE CAddonCallbacksGUI::ListItem_Create(void *addonData, const char *label
   if (iconImage)
     pItem->SetIconImage(iconImage);
   if (thumbnailImage)
-    pItem->SetThumbnailImage(thumbnailImage);
+    pItem->SetArt("thumb", thumbnailImage);
   if (path)
     pItem->SetPath(path);
 
@@ -1178,7 +1177,7 @@ void CAddonCallbacksGUI::ListItem_SetThumbnailImage(void *addonData, GUIHANDLE h
   if (!helper || !handle)
     return;
 
-  ((CFileItem*)handle)->SetThumbnailImage(image);
+  ((CFileItem*)handle)->SetArt("thumb", image);
 }
 
 void CAddonCallbacksGUI::ListItem_SetInfo(void *addonData, GUIHANDLE handle, const char *info)
@@ -1234,7 +1233,7 @@ CGUIAddonWindow::CGUIAddonWindow(int id, CStdString strXML, CAddon* addon)
  , m_actionEvent(true)
  , m_addon(addon)
 {
-  m_loadOnDemand  = false;
+  m_loadType = LOAD_ON_GUI_INIT;
   CBOnInit        = NULL;
   CBOnFocus       = NULL;
   CBOnClick       = NULL;
@@ -1482,7 +1481,6 @@ CGUIAddonWindowDialog::CGUIAddonWindowDialog(int id, CStdString strXML, CAddon* 
 : CGUIAddonWindow(id,strXML,addon)
 {
   m_bRunning = false;
-  m_loadOnDemand = false;
   m_bIsDialog = true;
 }
 
@@ -1505,7 +1503,7 @@ bool CGUIAddonWindowDialog::OnMessage(CGUIMessage &message)
 void CGUIAddonWindowDialog::Show(bool show /* = true */)
 {
   unsigned int iCount = g_graphicsContext.exit();
-  ThreadMessage tMsg = {TMSG_GUI_ADDON_DIALOG, 1, show ? 1 : 0};
+  ThreadMessage tMsg = {TMSG_GUI_ADDON_DIALOG, 1, show ? 1u : 0u};
   tMsg.lpVoid = this;
   CApplicationMessenger::Get().SendMessage(tMsg, true);
   g_graphicsContext.restore(iCount);

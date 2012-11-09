@@ -8,7 +8,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -22,9 +22,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -113,7 +112,7 @@ protected:
   void ClearCharacterCache();
 
   virtual CBaseTexture* ReallocTexture(unsigned int& newHeight) = 0;
-  virtual bool CopyCharToTexture(FT_BitmapGlyph bitGlyph, Character *ch) = 0;
+  virtual bool CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2) = 0;
   virtual void DeleteHardwareTexture() = 0;
 
   // modifying glyphs
@@ -126,6 +125,12 @@ protected:
   unsigned int m_textureHeight;      // heigth of our texture
   int m_posX;                        // current position in the texture
   int m_posY;
+
+  /*! \brief the height of each line in the texture.
+   Accounts for spacing between lines to avoid characters overlapping.
+   */
+  unsigned int GetTextureLineHeight() const;
+  static unsigned int spacing_between_characters_in_texture;
 
   color_t m_color;
 

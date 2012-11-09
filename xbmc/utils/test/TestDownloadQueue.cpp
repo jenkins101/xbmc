@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -75,7 +74,7 @@ TEST_F(TestDownloadQueue, RequestContent)
   count = 0;
   for (it = urls.begin(); it < urls.end(); it++)
   {
-    std::cout << "Testing URL: " << *it << "\n";
+    std::cout << "Testing URL: " << *it << std::endl;
     TICKET t = queue.RequestContent(*it, &observer);
     EXPECT_EQ(count, t.dwItemId);
     count++;
@@ -100,7 +99,7 @@ TEST_F(TestDownloadQueue, RequestFile)
   count = 0;
   for (it = urls.begin(); it < urls.end(); it++)
   {
-    std::cout << "Testing URL: " << *it << "\n";
+    std::cout << "Testing URL: " << *it << std::endl;
     TICKET t = queue.RequestFile(*it, &observer);
     EXPECT_EQ(count, t.dwItemId);
     count++;

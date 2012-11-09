@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -583,6 +582,7 @@ void CBaseRenderer::SetViewMode(int viewMode)
   RESOLUTION res = GetResolution();
   float screenWidth = (float)(g_settings.m_ResInfo[res].Overscan.right - g_settings.m_ResInfo[res].Overscan.left);
   float screenHeight = (float)(g_settings.m_ResInfo[res].Overscan.bottom - g_settings.m_ResInfo[res].Overscan.top);
+
   if(m_iFlags & CONF_FLAGS_FORMAT_SBS)
     screenWidth /= 2;
   else if(m_iFlags & CONF_FLAGS_FORMAT_TB)
@@ -592,6 +592,13 @@ void CBaseRenderer::SetViewMode(int viewMode)
 
   bool is43 = (sourceFrameRatio < 8.f/(3.f*sqrt(3.f)) &&
               g_settings.m_currentVideoSettings.m_ViewMode == VIEW_MODE_NORMAL);
+
+  // Splitres scaling factor
+  float xscale = (float)g_settings.m_ResInfo[res].iScreenWidth  / (float)g_settings.m_ResInfo[res].iWidth;
+  float yscale = (float)g_settings.m_ResInfo[res].iScreenHeight / (float)g_settings.m_ResInfo[res].iHeight;
+
+  screenWidth   *= xscale;
+  screenHeight  *= yscale;
 
   g_settings.m_fVerticalShift = 0.0f;
   g_settings.m_bNonLinStretch = false;

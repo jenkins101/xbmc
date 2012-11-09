@@ -15,11 +15,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#include <vector>
 
 #include "FileItem.h"
 #include "PVRChannelGroup.h"
@@ -96,6 +97,23 @@ namespace PVR
      * @return The group that contains all channels.
      */
     CPVRChannelGroupPtr GetGroupAll(void) const;
+
+    /*!
+     * @return The first group in this container, which always is the group with all channels.
+     */
+    CPVRChannelGroupPtr GetFirstGroup(void) const { return GetGroupAll(); }
+
+    /*!
+     * @return The last group in this container.
+     */
+    CPVRChannelGroupPtr GetLastGroup(void) const;
+    
+    /*!
+     * @brief Get the list of groups.
+     * @param groups The list to store the results in.
+     * @return The amount of items that were added.
+     */
+    std::vector<CPVRChannelGroupPtr> GetMembers() const;
 
     /*!
      * @brief Get the list of groups.

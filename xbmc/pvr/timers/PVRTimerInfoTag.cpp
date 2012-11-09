@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -242,6 +241,12 @@ CStdString CPVRTimerInfoTag::GetStatus() const
     strReturn = g_localizeStrings.Get(13106);
   else if (m_state == PVR_TIMER_STATE_RECORDING)
     strReturn = g_localizeStrings.Get(19162);
+  else if (m_state == PVR_TIMER_STATE_CONFLICT_OK)
+    strReturn = g_localizeStrings.Get(19275);
+  else if (m_state == PVR_TIMER_STATE_CONFLICT_NOK)	
+    strReturn = g_localizeStrings.Get(19276);	
+  else if (m_state == PVR_TIMER_STATE_ERROR)
+    strReturn = g_localizeStrings.Get(257);
 
   return strReturn;
 }
@@ -418,6 +423,7 @@ CPVRTimerInfoTag *CPVRTimerInfoTag::CreateFromEpg(const CEpgInfoTag &tag)
   if (!channel)
   {
     CLog::Log(LOGERROR, "%s - no channel set", __FUNCTION__);
+    delete newTag;
     return NULL;
   }
 
@@ -425,6 +431,7 @@ CPVRTimerInfoTag *CPVRTimerInfoTag::CreateFromEpg(const CEpgInfoTag &tag)
   if (tag.EndAsLocalTime() < CDateTime::GetCurrentDateTime())
   {
     CLog::Log(LOGERROR, "%s - end time is in the past", __FUNCTION__);
+    delete newTag;
     return NULL;
   }
 
@@ -521,6 +528,13 @@ void CPVRTimerInfoTag::GetNotificationText(CStdString &strText) const
     break;
   case PVR_TIMER_STATE_COMPLETED:
     strText.Format("%s: '%s'", g_localizeStrings.Get(19227), m_strTitle.c_str());
+    break;
+  case PVR_TIMER_STATE_CONFLICT_OK:	
+  case PVR_TIMER_STATE_CONFLICT_NOK:	
+    strText.Format("%s: '%s'", g_localizeStrings.Get(19277), m_strTitle.c_str());
+    break;
+  case PVR_TIMER_STATE_ERROR:
+    strText.Format("%s: '%s'", g_localizeStrings.Get(19278), m_strTitle.c_str());
     break;
   default:
     break;

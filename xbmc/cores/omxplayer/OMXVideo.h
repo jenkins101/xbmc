@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2010 Team XBMC
+ *      Copyright (C) 2010-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 
 #include <IL/OMX_Video.h>
 
-#include "BitstreamConverter.h"
+#include "utils/BitstreamConverter.h"
 
 #include "OMXClock.h"
 
@@ -93,6 +92,8 @@ protected:
   bool              m_deinterlace;
   bool              m_hdmi_clock_sync;
   bool              m_first_frame;
+
+  bool NaluFormatStartCodes(enum CodecID codec, uint8_t *in_extradata, int in_extrasize);
 };
 
 #endif

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2010 Team XBMC
+ *      Copyright (C) 2010-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,8 @@
 #include "linux/XMemUtils.h"
 #include "DVDDemuxers/DVDDemuxUtils.h"
 #include "settings/AdvancedSettings.h"
+#include "xbmc/guilib/GraphicContext.h"
+#include "settings/Settings.h"
 
 #include <sys/time.h>
 #include <inttypes.h>
@@ -127,6 +128,21 @@ bool COMXVideo::SendDecoderConfig()
   return true;
 }
 
+bool COMXVideo::NaluFormatStartCodes(enum CodecID codec, uint8_t *in_extradata, int in_extrasize)
+{
+  switch(codec)
+  {
+    case CODEC_ID_H264:
+      if (in_extrasize < 7 || in_extradata == NULL)
+        return true;
+      // valid avcC atom data always starts with the value 1 (version), otherwise annexb
+      else if ( *in_extradata != 1 )
+        return true;
+    default: break;
+  }
+  return false;    
+}
+
 bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, bool deinterlace, bool hdmi_clock_sync)
 {
   if(m_is_open)
@@ -146,27 +162,15 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, bool deinterlace, b
   if(!m_decoded_width || !m_decoded_height)
     return false;
 
+  if(hints.extrasize > 0 && hints.extradata != NULL)
+  {
+    m_extrasize = hints.extrasize;
+    m_extradata = (uint8_t *)malloc(m_extrasize);
+    memcpy(m_extradata, hints.extradata, hints.extrasize);
+  }
+
   m_converter     = new CBitstreamConverter();
   m_video_convert = m_converter->Open(hints.codec, (uint8_t *)hints.extradata, hints.extrasize, false);
-
-  if(m_video_convert)
-  {
-    if(m_converter->GetExtraData() != NULL && m_converter->GetExtraSize() > 0)
-    {
-      m_extrasize = m_converter->GetExtraSize();
-      m_extradata = (uint8_t *)malloc(m_extrasize);
-      memcpy(m_extradata, m_converter->GetExtraData(), m_converter->GetExtraSize());
-    }
-  }
-  else
-  {
-    if(hints.extrasize > 0 && hints.extradata != NULL)
-    {
-      m_extrasize = hints.extrasize;
-      m_extradata = (uint8_t *)malloc(m_extrasize);
-      memcpy(m_extradata, hints.extradata, hints.extrasize);
-    }
-  }
 
   switch (hints.codec)
   {
@@ -205,6 +209,19 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, bool deinterlace, b
           m_codingType = OMX_VIDEO_CodingAVC;
           m_video_codec_name = "omx-h264";
           break;
+      }
+
+      /* check interlaced */
+      if(m_extrasize > 9 && m_extradata[0] == 1)
+      {
+        int32_t  max_ref_frames = 0;
+        uint8_t  *spc = m_extradata + 6;
+        uint32_t sps_size = BS_RB16(spc);
+        bool     interlaced = true;
+        if (sps_size)
+          m_converter->parseh264_sps(spc+3, sps_size-1, &interlaced, &max_ref_frames);
+        if(!interlaced && deinterlace)
+          deinterlace = false;
       }
     }
     break;
@@ -250,15 +267,14 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, bool deinterlace, b
     break;
   }
 
+  /* enable deintelace on SD and 1080i */
   if(m_decoded_width <= 720 && m_decoded_height <=576 && deinterlace)
-  {
+    m_deinterlace = deinterlace;
+  else if(m_decoded_width >= 1920 && m_decoded_height >= 540 && deinterlace)
+    m_deinterlace = deinterlace;
+
+  if(m_deinterlace)
     CLog::Log(LOGDEBUG, "COMXVideo::Open : enable deinterlace\n");
-    m_deinterlace = true;
-  }
-  else
-  {
-    m_deinterlace = false;
-  }
 
   std::string componentName = "";
 
@@ -402,6 +418,21 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, bool deinterlace, b
   {
     CLog::Log(LOGERROR, "COMXVideo::Open error OMX_IndexParamBrcmVideoDecodeErrorConcealment omx_err(0x%08x)\n", omx_err);
     return false;
+  }
+
+  if(NaluFormatStartCodes(hints.codec, m_extradata, m_extrasize))
+  {
+    OMX_NALSTREAMFORMATTYPE nalStreamFormat;
+    OMX_INIT_STRUCTURE(nalStreamFormat);
+    nalStreamFormat.nPortIndex = m_omx_decoder.GetInputPort();
+    nalStreamFormat.eNaluFormat = OMX_NaluFormatStartCodes;
+
+    omx_err = m_omx_decoder.SetParameter((OMX_INDEXTYPE)OMX_IndexParamNalStreamFormatSelect, &nalStreamFormat);
+    if (omx_err != OMX_ErrorNone)
+    {
+      CLog::Log(LOGERROR, "COMXVideo::Open OMX_IndexParamNalStreamFormatSelect error (0%08x)\n", omx_err);
+      return false;
+    }
   }
 
   if(m_hdmi_clock_sync)
@@ -608,14 +639,6 @@ void COMXVideo::Close()
   if(!m_is_open)
     return;
 
-  /*
-  if(m_av_clock)
-  {
-    m_av_clock->Lock();
-    m_av_clock->OMXStop(false);
-  }
-  */
-
   m_omx_tunnel_decoder.Flush();
   if(m_deinterlace)
     m_omx_tunnel_image_fx.Flush();
@@ -635,14 +658,6 @@ void COMXVideo::Close()
     m_omx_image_fx.Deinitialize();
   m_omx_decoder.Deinitialize();
   m_omx_render.Deinitialize();
-
-  /*
-  if(m_av_clock)
-  {
-    m_av_clock->OMXReset(false);
-    m_av_clock->UnLock();
-  }
-  */
 
   m_is_open       = false;
 
@@ -686,17 +701,6 @@ int COMXVideo::Decode(uint8_t *pData, int iSize, double dts, double pts)
   {
     unsigned int demuxer_bytes = (unsigned int)iSize;
     uint8_t *demuxer_content = pData;
-
-    if(m_video_convert)
-    {
-      m_converter->Convert(pData, iSize);
-      demuxer_bytes = m_converter->GetConvertSize();
-      demuxer_content = m_converter->GetConvertBuffer();
-      if(!demuxer_bytes && demuxer_bytes < 1)
-      {
-        return false;
-      }
-    }
 
     while(demuxer_bytes)
     {
@@ -890,17 +894,38 @@ void COMXVideo::SetVideoRect(const CRect& SrcRect, const CRect& DestRect)
   OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
   OMX_INIT_STRUCTURE(configDisplay);
   configDisplay.nPortIndex = m_omx_render.GetInputPort();
+  RESOLUTION res = g_graphicsContext.GetVideoResolution();
+  // DestRect is in GUI coordinates, rather than display coordinates, so we have to scale
+  float xscale = (float)g_settings.m_ResInfo[res].iScreenWidth  / (float)g_settings.m_ResInfo[res].iWidth;
+  float yscale = (float)g_settings.m_ResInfo[res].iScreenHeight / (float)g_settings.m_ResInfo[res].iHeight;
+  float sx1 = SrcRect.x1, sy1 = SrcRect.y1, sx2 = SrcRect.x2, sy2 = SrcRect.y2;
+  float dx1 = DestRect.x1*xscale, dy1 = DestRect.y1*yscale, dx2 = DestRect.x2*xscale, dy2 = DestRect.y2*yscale;
+  float sw = SrcRect.Width() / DestRect.Width();
+  float sh = SrcRect.Height() / DestRect.Height();
 
-  configDisplay.set     = OMX_DISPLAY_SET_FULLSCREEN;
+  // doesn't like negative coordinates on dest_rect. So adjust by increasing src_rect
+  if (dx1 < 0.0f) {
+    sx1 -= dx1 * sw;
+    dx1 -= dx1;
+  }
+  if (dy1 < 0.0f) {
+    sy1 -= dy1 * sh;
+    dy1 -= dy1;
+  }
+
   configDisplay.fullscreen = OMX_FALSE;
+  configDisplay.noaspect   = OMX_TRUE;
 
-  m_omx_render.SetConfig(OMX_IndexConfigDisplayRegion, &configDisplay);
+  configDisplay.set                 = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_DEST_RECT|OMX_DISPLAY_SET_SRC_RECT|OMX_DISPLAY_SET_FULLSCREEN|OMX_DISPLAY_SET_NOASPECT);
+  configDisplay.dest_rect.x_offset  = (int)(dx1+0.5f);
+  configDisplay.dest_rect.y_offset  = (int)(dy1+0.5f);
+  configDisplay.dest_rect.width     = (int)(dx2-dx1+0.5f);
+  configDisplay.dest_rect.height    = (int)(dy2-dy1+0.5f);
 
-  configDisplay.set     = OMX_DISPLAY_SET_DEST_RECT;
-  configDisplay.dest_rect.x_offset  = DestRect.x1;
-  configDisplay.dest_rect.y_offset  = DestRect.y1;
-  configDisplay.dest_rect.width     = DestRect.Width();
-  configDisplay.dest_rect.height    = DestRect.Height();
+  configDisplay.src_rect.x_offset   = (int)(sx1+0.5f);
+  configDisplay.src_rect.y_offset   = (int)(sy1+0.5f);
+  configDisplay.src_rect.width      = (int)(sx2-sx1+0.5f);
+  configDisplay.src_rect.height     = (int)(sy2-sy1+0.5f);
 
   m_omx_render.SetConfig(OMX_IndexConfigDisplayRegion, &configDisplay);
 
@@ -921,7 +946,6 @@ void COMXVideo::WaitCompletion()
 
   OMX_ERRORTYPE omx_err = OMX_ErrorNone;
   OMX_BUFFERHEADERTYPE *omx_buffer = m_omx_decoder.GetInputBuffer();
-  struct timespec starttime, endtime;
   
   if(omx_buffer == NULL)
   {
@@ -942,19 +966,23 @@ void COMXVideo::WaitCompletion()
     return;
   }
 
-  clock_gettime(CLOCK_REALTIME, &starttime);
+  unsigned int nTimeOut = 30000;
 
-  while(true)
+  while(nTimeOut)
   {
     if(m_omx_render.IsEOS())
+    {
+      CLog::Log(LOGDEBUG, "%s::%s - got eos\n", CLASSNAME, __func__);
       break;
-    clock_gettime(CLOCK_REALTIME, &endtime);
-    if((endtime.tv_sec - starttime.tv_sec) > 5)
+    }
+
+    if(nTimeOut == 0)
     {
       CLog::Log(LOGERROR, "%s::%s - wait for eos timed out\n", CLASSNAME, __func__);
       break;
     }
     Sleep(50);
+    nTimeOut -= 50;
   }
 
   return;

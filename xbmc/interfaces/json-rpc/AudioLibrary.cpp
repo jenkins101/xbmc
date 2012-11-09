@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,7 +76,7 @@ JSONRPC_STATUS CAudioLibrary::GetArtists(const CStdString &method, ITransportLay
     return InvalidParams;
 
   CFileItemList items;
-  if (!musicdatabase.GetArtistsNav(musicUrl.ToString(), items, albumArtistsOnly, genreID, albumID, songID, sorting))
+  if (!musicdatabase.GetArtistsNav(musicUrl.ToString(), items, albumArtistsOnly, genreID, albumID, songID, CDatabase::Filter(), sorting))
     return InternalError;
 
   // Add "artist" to "properties" array by default
@@ -155,7 +154,7 @@ JSONRPC_STATUS CAudioLibrary::GetAlbums(const CStdString &method, ITransportLaye
     return InvalidParams;
 
   CFileItemList items;
-  if (!musicdatabase.GetAlbumsNav(musicUrl.ToString(), items, genreID, artistID, sorting))
+  if (!musicdatabase.GetAlbumsNav(musicUrl.ToString(), items, genreID, artistID, CDatabase::Filter(), sorting))
     return InternalError;
 
   int size = items.Size();
@@ -391,6 +390,7 @@ JSONRPC_STATUS CAudioLibrary::SetArtistDetails(const CStdString &method, ITransp
   if (musicdatabase.SetArtistInfo(id, artist) <= 0)
     return InternalError;
 
+  CJSONRPCUtils::NotifyItemUpdated();
   return ACK;
 }
 
@@ -433,6 +433,7 @@ JSONRPC_STATUS CAudioLibrary::SetAlbumDetails(const CStdString &method, ITranspo
   if (musicdatabase.SetAlbumInfo(id, album, songs) <= 0)
     return InternalError;
 
+  CJSONRPCUtils::NotifyItemUpdated();
   return ACK;
 }
 
@@ -482,6 +483,7 @@ JSONRPC_STATUS CAudioLibrary::SetSongDetails(const CStdString &method, ITranspor
   if (musicdatabase.UpdateSong(song, id) <= 0)
     return InternalError;
 
+  CJSONRPCUtils::NotifyItemUpdated();
   return ACK;
 }
 
@@ -531,7 +533,7 @@ bool CAudioLibrary::FillFileItem(const CStdString &strFilename, CFileItem &item)
     if (!musicdatabase.GetAlbumInfo(albumid, album, NULL))
       return false;
 
-    item = CFileItem(strFilename, album);
+    item.SetFromAlbum(album);
   }
   else
   {
@@ -539,7 +541,7 @@ bool CAudioLibrary::FillFileItem(const CStdString &strFilename, CFileItem &item)
     if (!musicdatabase.GetSongByFileName(strFilename, song))
       return false;
 
-    item = CFileItem(song);
+    item.SetFromSong(song);
   }
 
   return true;

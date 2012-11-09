@@ -13,15 +13,191 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "utils/StringUtils.h"
 
 #include "gtest/gtest.h"
+
+TEST(TestStringUtils, Format)
+{
+  std::string refstr = "test 25 2.7 ff FF";
+
+  std::string varstr = StringUtils::Format("%s %d %.1f %x %02X", "test", 25, 2.743f, 0x00ff, 0x00ff);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+
+  varstr = StringUtils::Format(NULL, "test", 25, 2.743f, 0x00ff, 0x00ff);
+  EXPECT_STREQ("", varstr.c_str());
+}
+
+TEST(TestStringUtils, ToUpper)
+{
+  std::string refstr = "TEST";
+
+  std::string varstr = "TeSt";
+  StringUtils::ToUpper(varstr);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, ToLower)
+{
+  std::string refstr = "test";
+  
+  std::string varstr = "TeSt";
+  StringUtils::ToLower(varstr);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, EqualsNoCase)
+{
+  std::string refstr = "TeSt";
+  
+  EXPECT_TRUE(StringUtils::EqualsNoCase(refstr, "TeSt"));
+  EXPECT_TRUE(StringUtils::EqualsNoCase(refstr, "tEsT"));
+}
+
+TEST(TestStringUtils, Left)
+{
+  std::string refstr, varstr;
+  std::string origstr = "test";
+  
+  refstr = "";
+  varstr = StringUtils::Left(origstr, 0);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "te";
+  varstr = StringUtils::Left(origstr, 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "test";
+  varstr = StringUtils::Left(origstr, 10);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, Mid)
+{
+  std::string refstr, varstr;
+  std::string origstr = "test";
+  
+  refstr = "";
+  varstr = StringUtils::Mid(origstr, 0, 0);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "te";
+  varstr = StringUtils::Mid(origstr, 0, 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "test";
+  varstr = StringUtils::Mid(origstr, 0, 10);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "st";
+  varstr = StringUtils::Mid(origstr, 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "st";
+  varstr = StringUtils::Mid(origstr, 2, 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "es";
+  varstr = StringUtils::Mid(origstr, 1, 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, Right)
+{
+  std::string refstr, varstr;
+  std::string origstr = "test";
+  
+  refstr = "";
+  varstr = StringUtils::Right(origstr, 0);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "st";
+  varstr = StringUtils::Right(origstr, 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  refstr = "test";
+  varstr = StringUtils::Right(origstr, 10);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, Trim)
+{
+  std::string refstr = "test test";
+  
+  std::string varstr = " test test   ";
+  StringUtils::Trim(varstr);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, TrimLeft)
+{
+  std::string refstr = "test test   ";
+  
+  std::string varstr = " test test   ";
+  StringUtils::TrimLeft(varstr);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, TrimRight)
+{
+  std::string refstr = " test test";
+  
+  std::string varstr = " test test   ";
+  StringUtils::TrimRight(varstr);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, Replace)
+{
+  std::string refstr = "text text";
+  
+  std::string varstr = "test test";
+  EXPECT_EQ(StringUtils::Replace(varstr, 's', 'x'), 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  EXPECT_EQ(StringUtils::Replace(varstr, 's', 'x'), 0);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  varstr = "test test";
+  EXPECT_EQ(StringUtils::Replace(varstr, "s", "x"), 2);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  
+  EXPECT_EQ(StringUtils::Replace(varstr, "s", "x"), 0);
+  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+}
+
+TEST(TestStringUtils, StartsWith)
+{
+  std::string refstr = "test";
+  
+  EXPECT_FALSE(StringUtils::StartsWith(refstr, "x"));
+  
+  EXPECT_TRUE(StringUtils::StartsWith(refstr, "te", true));
+  EXPECT_TRUE(StringUtils::StartsWith(refstr, "test", true));
+  EXPECT_FALSE(StringUtils::StartsWith(refstr, "Te", true));
+  
+  EXPECT_TRUE(StringUtils::StartsWith(refstr, "Te", false));
+  EXPECT_TRUE(StringUtils::StartsWith(refstr, "TesT", false));
+}
+
+TEST(TestStringUtils, EndsWith)
+{
+  std::string refstr = "test";
+  
+  EXPECT_FALSE(StringUtils::EndsWith(refstr, "x"));
+  
+  EXPECT_TRUE(StringUtils::EndsWith(refstr, "st", true));
+  EXPECT_TRUE(StringUtils::EndsWith(refstr, "test", true));
+  EXPECT_FALSE(StringUtils::EndsWith(refstr, "sT", true));
+  
+  EXPECT_TRUE(StringUtils::EndsWith(refstr, "sT", false));
+  EXPECT_TRUE(StringUtils::EndsWith(refstr, "TesT", false));
+}
 
 TEST(TestStringUtils, JoinString)
 {
@@ -127,11 +303,18 @@ TEST(TestStringUtils, AlphaNumericCompare)
 
 TEST(TestStringUtils, TimeStringToSeconds)
 {
-  long ref, var;
-
-  ref = 77455;
-  var = StringUtils::TimeStringToSeconds("21:30:55");
-  EXPECT_EQ(ref, var);
+  EXPECT_EQ(77455, StringUtils::TimeStringToSeconds("21:30:55"));
+  EXPECT_EQ(7*60, StringUtils::TimeStringToSeconds("7 min"));
+  EXPECT_EQ(7*60, StringUtils::TimeStringToSeconds("7 min\t"));
+  EXPECT_EQ(154*60, StringUtils::TimeStringToSeconds("   154 min"));
+  EXPECT_EQ(1*60+1, StringUtils::TimeStringToSeconds("1:01"));
+  EXPECT_EQ(4*60+3, StringUtils::TimeStringToSeconds("4:03"));
+  EXPECT_EQ(2*3600+4*60+3, StringUtils::TimeStringToSeconds("2:04:03"));
+  EXPECT_EQ(2*3600+4*60+3, StringUtils::TimeStringToSeconds("   2:4:3"));
+  EXPECT_EQ(2*3600+4*60+3, StringUtils::TimeStringToSeconds("  \t\t 02:04:03 \n "));
+  EXPECT_EQ(1*3600+5*60+2, StringUtils::TimeStringToSeconds("01:05:02:04:03 \n "));
+  EXPECT_EQ(0, StringUtils::TimeStringToSeconds("blah"));
+  EXPECT_EQ(0, StringUtils::TimeStringToSeconds("ля-ля"));
 }
 
 TEST(TestStringUtils, RemoveCRLF)
@@ -245,7 +428,7 @@ TEST(TestStringUtils, WordToDigits)
 
 TEST(TestStringUtils, CreateUUID)
 {
-  std::cout << "CreateUUID(): " << StringUtils::CreateUUID() << "\n";
+  std::cout << "CreateUUID(): " << StringUtils::CreateUUID() << std::endl;
 }
 
 TEST(TestStringUtils, ValidateUUID)

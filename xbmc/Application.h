@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -15,9 +15,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -75,9 +74,6 @@ class CHTTPImageHandler;
 class CHTTPVfsHandler;
 #ifdef HAS_JSONRPC
 class CHTTPJsonRpcHandler;
-#endif
-#ifdef HAS_HTTPAPI
-class CHTTPApiHandler;
 #endif
 #ifdef HAS_WEB_INTERFACE
 class CHTTPWebinterfaceHandler;
@@ -151,9 +147,7 @@ public:
   void StartUPnPServer();
   void StopUPnPServer();
   void StartPVRManager();
-  void StartEPGManager(void);
   void StopPVRManager();
-  void StopEPGManager(void);
   bool StartEventServer();
   bool StopEventServer(bool bWait, bool promptuser);
   void RefreshEventServer();
@@ -206,7 +200,6 @@ public:
   void CheckScreenSaverAndDPMS();
   void CheckPlayingProgress();
   void CheckAudioScrobblerStatus();
-  void CheckForTitleChange();
   void ActivateScreenSaver(bool forceType = false);
 
   virtual void Process();
@@ -249,9 +242,6 @@ public:
 
   void StopShutdownTimer();
   void ResetShutdownTimers();
-
-  void SaveMusicScanSettings();
-  void RestoreMusicScanSettings();
 
   void StopVideoScan();
   void StopMusicScan();
@@ -299,9 +289,6 @@ public:
   CHTTPVfsHandler& m_httpVfsHandler;
 #ifdef HAS_JSONRPC
   CHTTPJsonRpcHandler& m_httpJsonRpcHandler;
-#endif
-#ifdef HAS_HTTPAPI
-  CHTTPApiHandler& m_httpApiHandler;
 #endif
 #ifdef HAS_WEB_INTERFACE
   CHTTPWebinterfaceHandler& m_httpWebinterfaceHandler;
@@ -377,6 +364,7 @@ public:
   bool SwitchToFullScreen();
 
   CSplash* GetSplash() { return m_splash; }
+  void SetRenderGUI(bool renderGUI);
 protected:
   bool LoadSkin(const CStdString& skinID);
   void LoadSkin(const boost::shared_ptr<ADDON::CSkinInfo>& skin);
@@ -458,8 +446,6 @@ protected:
   bool ProcessGamepad(float frameTime);
   bool ProcessEventServer(float frameTime);
   bool ProcessPeripherals(float frameTime);
-  bool ProcessHTTPApiButtons();
-  bool ProcessJsonRpcButtons();
   bool ProcessJoystickEvent(const std::string& joystickName, int button, bool isAxis, float fAmount, unsigned int holdTime = 0);
   int  GetActiveWindowID(void);
 

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -139,7 +138,7 @@ bool CTuxBoxUtil::CreateNewItem(const CFileItem& item, CFileItem& item_new)
   //Build new Item
   item_new.SetLabel(item.GetLabel());
   item_new.SetPath(item.GetPath());
-  item_new.SetThumbnailImage(item.GetThumbnailImage());
+  item_new.SetArt("thumb", item.GetArt("thumb"));
 
   if(g_tuxbox.GetZapUrl(item.GetPath(), item_new))
   {
@@ -321,7 +320,7 @@ bool CTuxBoxUtil::ParseChannels(TiXmlElement *root, CFileItemList &items, CURL &
                     pbItem->SetLabel(strItemName);
                     pbItem->SetLabelPreformated(true);
                     pbItem->SetPath("tuxbox://"+url.GetUserName()+":"+url.GetPassWord()+"@"+url.GetHostName()+strPort+"/cgi-bin/zapTo?path="+strItemPath+".ts");
-                    pbItem->SetThumbnailImage(GetPicon(strItemName)); //Set Picon Image
+                    pbItem->SetArt("thumb", GetPicon(strItemName)); //Set Picon Image
 
                     //DEBUG Log
                     CLog::Log(LOGDEBUG, "%s - Name:    %s", __FUNCTION__,strItemName.c_str());

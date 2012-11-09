@@ -1,4 +1,5 @@
-SRCS=ApplicationOperations.cpp \
+SRCS=AddonsOperations.cpp \
+     ApplicationOperations.cpp \
      AudioLibrary.cpp \
      FileItemHandler.cpp \
      FileOperations.cpp \
@@ -8,6 +9,7 @@ SRCS=ApplicationOperations.cpp \
      JSONServiceDescription.cpp \
      PlayerOperations.cpp \
      PlaylistOperations.cpp \
+     PVROperations.cpp \
      SystemOperations.cpp \
      VideoLibrary.cpp \
      XBMCOperations.cpp \

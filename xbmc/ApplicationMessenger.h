@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -15,9 +15,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -88,8 +87,7 @@ namespace MUSIC_INFO
 #define TMSG_SETLANGUAGE          311
 #define TMSG_RENDERER_FLUSH       312
 #define TMSG_INHIBITIDLESHUTDOWN  313
-
-#define TMSG_HTTPAPI              400
+#define TMSG_LOADPROFILE          314
 
 #define TMSG_NETWORKMESSAGE         500
 
@@ -205,9 +203,10 @@ public:
   //! \brief Set the currently currently item
   void SetCurrentItem(const CFileItem& item);
 
+  void LoadProfile(unsigned int idx);
+
   CStdString GetResponse();
   int SetResponse(CStdString response);
-  void HttpApi(std::string cmd, bool wait = false);
   void ExecBuiltIn(const CStdString &command, bool wait = false);
 
   void NetworkMessage(DWORD dwMessage, DWORD dwParam = 0);

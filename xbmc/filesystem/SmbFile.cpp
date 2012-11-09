@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -564,6 +563,25 @@ int CSmbFile::Stat(const CURL& url, struct __stat64* buffer)
   buffer->st_ctime = tmpBuffer.st_ctime;
 
   return iResult;
+}
+
+int CSmbFile::Truncate(int64_t size)
+{
+  if (m_fd == -1) return 0;
+/* 
+ * This would force us to be dependant on SMBv3.2 which is GPLv3
+ * This is only used by the TagLib writers, which are not currently in use
+ * So log and warn until we implement TagLib writing & can re-implement this better.
+  CSingleLock lock(smb); // Init not called since it has to be "inited" by now
+
+#if defined(TARGET_ANDROID)
+  int iResult = 0;
+#else
+  int iResult = smbc_ftruncate(m_fd, size);
+#endif
+*/
+  CLog::Log(LOGWARNING, "%s - Warning(smbc_ftruncate called and not implemented)", __FUNCTION__);
+  return 0;
 }
 
 unsigned int CSmbFile::Read(void *lpBuf, int64_t uiBufSize)

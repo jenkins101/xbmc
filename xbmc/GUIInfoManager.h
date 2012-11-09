@@ -7,7 +7,7 @@
 #define GUIINFOMANAGER_H_
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,9 +21,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -104,7 +103,10 @@ namespace INFO
 #define PLAYER_FILEPATH              46
 #define PLAYER_SEEKOFFSET            47
 #define PLAYER_PROGRESS_CACHE        48
-#define PLAYER_ITEM_PROPERTY         49
+#define PLAYER_ITEM_ART              49
+#define PLAYER_CAN_PAUSE             50
+#define PLAYER_CAN_SEEK              51
+#define PLAYER_START_TIME            52
 
 #define WEATHER_CONDITIONS          100
 #define WEATHER_TEMPERATURE         101
@@ -290,6 +292,10 @@ namespace INFO
 #define LASTFM_CANLOVE              331
 #define LASTFM_CANBAN               332
 
+#define CONTAINER_CAN_FILTER         342
+#define CONTAINER_CAN_FILTERADVANCED 343
+#define CONTAINER_FILTERED           344
+
 #define CONTAINER_SCROLL_PREVIOUS   345 // NOTE: These 5 must be kept in this consecutive order
 #define CONTAINER_MOVE_PREVIOUS     346
 #define CONTAINER_STATIC            347
@@ -361,6 +367,7 @@ namespace INFO
 #define SKIN_THEME                  604
 #define SKIN_COLOUR_THEME           605
 #define SKIN_HAS_THEME              606
+#define SKIN_ASPECT_RATIO           607
 
 #define SYSTEM_TOTAL_MEMORY         644
 #define SYSTEM_CPU_USAGE            645
@@ -496,7 +503,7 @@ namespace INFO
 
 #define VERSION_MAJOR 12
 #define VERSION_MINOR 0
-#define VERSION_TAG "-ALPHA6"
+#define VERSION_TAG "-ALPHA7"
 
 #define LISTITEM_START              35000
 #define LISTITEM_THUMB              (LISTITEM_START)
@@ -612,7 +619,8 @@ namespace INFO
 #define LISTITEM_PROPERTY_END       (LISTITEM_PROPERTY_START + 1000)
 #define LISTITEM_END                (LISTITEM_PROPERTY_END)
 
-#define MUSICPLAYER_PROPERTY_OFFSET 900 // last 100 id's reserved for musicplayer props.
+#define MUSICPLAYER_PROPERTY_OFFSET 800 // 100 id's reserved for musicplayer props.
+#define LISTITEM_ART_OFFSET         900 // 100 id's reserved for listitem art.
 
 #define CONDITIONAL_LABEL_START       LISTITEM_END + 1 // 36001
 #define CONDITIONAL_LABEL_END         37000
@@ -801,6 +809,9 @@ public:
   int RegisterSkinVariableString(const INFO::CSkinVariableString* info);
   int TranslateSkinVariableString(const CStdString& name, int context);
   CStdString GetSkinVariableString(int info, bool preferImage = false, const CGUIListItem *item=NULL);
+
+  /// \brief iterates through boolean conditions and compares their stored values to current values. Returns true if any condition changed value.
+  bool ConditionsChangedValues(const std::map<int, bool>& map);
 protected:
   friend class INFO::InfoSingle;
   bool GetBool(int condition, int contextWindow = 0, const CGUIListItem *item=NULL);

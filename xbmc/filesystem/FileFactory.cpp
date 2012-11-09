@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "FileFactory.h"
 #include "HDFile.h"
 #include "CurlFile.h"
+#include "HTTPFile.h"
 #include "ShoutcastFile.h"
 #include "LastFMFile.h"
 #include "FileReaderFile.h"
@@ -77,7 +77,9 @@
 #if defined(TARGET_ANDROID)
 #include "AndroidAppFile.h"
 #endif
+#ifdef HAS_UPNP
 #include "UPnPFile.h"
+#endif
 #include "PipesManager.h"
 #include "PipeFile.h"
 #include "MusicDatabaseFile.h"
@@ -143,13 +145,12 @@ IFile* CFileFactory::CreateLoader(const CURL& url)
 
   if( g_application.getNetwork().IsAvailable() )
   {
-    if (strProtocol == "http"
-    ||  strProtocol == "https"
-    ||  strProtocol == "dav"
+    if (strProtocol == "dav"
     ||  strProtocol == "davs"
     ||  strProtocol == "ftp"
     ||  strProtocol == "ftps"
     ||  strProtocol == "rss") return new CCurlFile();
+    else if (strProtocol == "http" ||  strProtocol == "https") return new CHTTPFile();
 #ifdef HAS_FILESYSTEM_SFTP
     else if (strProtocol == "sftp" || strProtocol == "ssh") return new CSFTPFile();
 #endif
@@ -191,7 +192,9 @@ IFile* CFileFactory::CreateLoader(const CURL& url)
     else if (strProtocol == "afp") return new CAFPFile();
 #endif
     else if (strProtocol == "pipe") return new CPipeFile();    
+#ifdef HAS_UPNP
     else if (strProtocol == "upnp") return new CUPnPFile();
+#endif
 #if defined(TARGET_ANDROID)
     else if (strProtocol == "androidapp") return new CFileAndroidApp();
 #endif

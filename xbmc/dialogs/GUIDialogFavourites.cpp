@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,6 +38,7 @@ CGUIDialogFavourites::CGUIDialogFavourites(void)
     : CGUIDialog(WINDOW_DIALOG_FAVOURITES, "DialogFavourites.xml")
 {
   m_favourites = new CFileItemList;
+  m_loadType = KEEP_IN_MEMORY;
 }
 
 CGUIDialogFavourites::~CGUIDialogFavourites(void)
@@ -199,10 +199,10 @@ void CGUIDialogFavourites::OnSetThumb(int item)
   CFileItemList items;
 
   // Current
-  if (pItem->HasThumbnail())
+  if (pItem->HasArt("thumb"))
   {
     CFileItemPtr current(new CFileItem("thumb://Current", false));
-    current->SetThumbnailImage(pItem->GetThumbnailImage());
+    current->SetArt("thumb", pItem->GetArt("thumb"));
     current->SetLabel(g_localizeStrings.Get(20016));
     items.Add(current);
   }
@@ -219,7 +219,7 @@ void CGUIDialogFavourites::OnSetThumb(int item)
   if (!CGUIDialogFileBrowser::ShowAndGetImage(items, sources, g_localizeStrings.Get(1030), thumb))
     return;
 
-  (*m_favourites)[item]->SetThumbnailImage(thumb);
+  (*m_favourites)[item]->SetArt("thumb", thumb);
   CFavourites::Save(*m_favourites);
   UpdateList();
 }

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -207,9 +206,9 @@ extern "C" void __stdcall init_emu_environ()
 extern "C" void __stdcall update_emu_environ()
 {
   // Use a proxy, if the GUI was configured as such
-  if (g_guiSettings.GetBool("network.usehttpproxy") &&
-      g_guiSettings.GetString("network.httpproxyserver") &&
-      g_guiSettings.GetString("network.httpproxyport"))
+  if (g_guiSettings.GetBool("network.usehttpproxy")
+      && !g_guiSettings.GetString("network.httpproxyserver").empty()
+      && !g_guiSettings.GetString("network.httpproxyport").empty())
   {
     CStdString strProxy;
     if (g_guiSettings.GetString("network.httpproxyusername") &&
@@ -843,6 +842,12 @@ extern "C"
       URIUtils::GetExtension(url.GetFileName(),strMask);
       url.SetFileName(url.GetFileName().Left(url.GetFileName().Find("*.")));
     }
+    else if (url.GetFileName().Find("*") != string::npos)
+    {
+      CStdString strReplaced = url.GetFileName();
+      strReplaced.Replace("*","");
+      url.SetFileName(strReplaced);
+    }
     int iDirSlot=0; // locate next free directory
     while ((vecDirsOpen[iDirSlot].curr_index != -1) && (iDirSlot<MAX_OPEN_DIRS)) iDirSlot++;
     if (iDirSlot >= MAX_OPEN_DIRS)
@@ -852,8 +857,6 @@ extern "C"
       CURL url2(url.GetFileName());
       url = url2;
     }
-    CStdString fName = url.GetFileName();
-    url.SetFileName("");
     strURL = url.Get();
     bVecDirsInited = true;
     vecDirsOpen[iDirSlot].items.Clear();

@@ -2,7 +2,7 @@
 #define LINUXRENDERERGLES_RENDERER
 
 /*
- *      Copyright (C) 2010 Team XBMC
+ *      Copyright (C) 2010-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -16,9 +16,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,7 @@ class CBaseTexture;
 namespace Shaders { class BaseYUV2RGBShader; }
 namespace Shaders { class BaseVideoFilterShader; }
 class COpenMaxVideo;
+typedef std::vector<int>     Features;
 
 #define NUM_BUFFERS 3
 
@@ -266,6 +266,11 @@ protected:
   Shaders::BaseVideoFilterShader *m_pVideoFilterShader;
   ESCALINGMETHOD m_scalingMethod;
   ESCALINGMETHOD m_scalingMethodGui;
+
+  Features m_renderFeatures;
+  Features m_deinterlaceMethods;
+  Features m_deinterlaceModes;
+  Features m_scalingMethods;
 
   // clear colour for "black" bars
   float m_clearColour;

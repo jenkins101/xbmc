@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,12 +78,15 @@ void CPVRClient::ResetProperties(int iClientId /* = PVR_INVALID_CLIENT_ID */)
   memset(&m_addonCapabilities, 0, sizeof(m_addonCapabilities));
   ResetQualityData(m_qualityInfo);
   m_apiVersion = AddonVersion("0.0.0");
+  m_bCanPauseStream       = false;
+  m_bCanSeekStream        = false;
 }
 
-bool CPVRClient::Create(int iClientId)
+ADDON_STATUS CPVRClient::Create(int iClientId)
 {
+  ADDON_STATUS status(ADDON_STATUS_UNKNOWN);
   if (iClientId <= PVR_INVALID_CLIENT_ID || iClientId == PVR_VIRTUAL_CLIENT_ID)
-    return false;
+    return status;
 
   /* ensure that a previous instance is destroyed */
   Destroy();
@@ -97,16 +99,14 @@ bool CPVRClient::Create(int iClientId)
   CLog::Log(LOGDEBUG, "PVR - %s - creating PVR add-on instance '%s'", __FUNCTION__, Name().c_str());
   try
   {
-    bReadyToUse = CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::Create() &&
-        GetAddonProperties();
+    if ((status = CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::Create()) == ADDON_STATUS_OK)
+      bReadyToUse = GetAddonProperties();
   }
   catch (exception &e) { LogException(e, __FUNCTION__); }
 
   m_bReadyToUse = bReadyToUse;
-  if (!bReadyToUse)
-    ResetProperties(iClientId);
 
-  return bReadyToUse;
+  return status;
 }
 
 bool CPVRClient::DllLoaded(void) const
@@ -189,6 +189,9 @@ void CPVRClient::WriteClientRecordingInfo(const CPVRRecording &xbmcRecording, PV
   addonRecording.iLifetime      = xbmcRecording.m_iLifetime;
   strncpy(addonRecording.strDirectory, xbmcRecording.m_strDirectory.c_str(), sizeof(addonRecording.strDirectory) - 1);
   strncpy(addonRecording.strStreamURL, xbmcRecording.m_strStreamURL.c_str(), sizeof(addonRecording.strStreamURL) - 1);
+  strncpy(addonRecording.strIconPath, xbmcRecording.m_strIconPath.c_str(), sizeof(addonRecording.strIconPath) - 1);
+  strncpy(addonRecording.strThumbnailPath, xbmcRecording.m_strThumbnailPath.c_str(), sizeof(addonRecording.strThumbnailPath) - 1);
+  strncpy(addonRecording.strFanartPath, xbmcRecording.m_strFanartPath.c_str(), sizeof(addonRecording.strFanartPath) - 1);
 }
 
 /*!
@@ -893,7 +896,7 @@ int64_t CPVRClient::GetStreamLength(void)
   else if (IsPlayingRecording())
   {
     try { return m_pStruct->LengthRecordedStream(); }
-    catch (exception &e) { LogException(e, "PositionRecordedStream()"); }
+    catch (exception &e) { LogException(e, "LengthRecordedStream()"); }
   }
   return -EINVAL;
 }
@@ -916,7 +919,15 @@ bool CPVRClient::SwitchChannel(const CPVRChannel &channel)
   {
     PVR_CHANNEL tag;
     WriteClientChannelInfo(channel, tag);
-    try { bSwitched = m_pStruct->SwitchChannel(tag); }
+    try
+    {
+      bSwitched = m_pStruct->SwitchChannel(tag);
+      if (bSwitched)
+      {
+        m_bCanPauseStream = m_pStruct->CanPauseStream();
+        m_bCanSeekStream = m_pStruct->CanSeekStream();
+      }
+    }
     catch (exception &e) { LogException(e, __FUNCTION__); }
   }
 
@@ -937,8 +948,7 @@ bool CPVRClient::SignalQuality(PVR_SIGNAL_STATUS &qualityinfo)
   {
     try
     {
-      PVR_ERROR retVal = m_pStruct->SignalStatus(qualityinfo);
-      return LogError(retVal, __FUNCTION__);
+      return m_pStruct->SignalStatus(qualityinfo) == PVR_ERROR_NO_ERROR;
     }
     catch (exception &e)
     {
@@ -1227,7 +1237,15 @@ bool CPVRClient::OpenStream(const CPVRChannel &channel, bool bIsSwitchingChannel
     PVR_CHANNEL tag;
     WriteClientChannelInfo(channel, tag);
 
-    try { bReturn = m_pStruct->OpenLiveStream(tag); }
+    try
+    {
+      bReturn = m_pStruct->OpenLiveStream(tag);
+      if (bReturn)
+      {
+        m_bCanPauseStream = m_pStruct->CanPauseStream();
+        m_bCanSeekStream = m_pStruct->CanSeekStream();
+      }
+    }
     catch (exception &e) { LogException(e, __FUNCTION__); }
   }
 
@@ -1253,7 +1271,15 @@ bool CPVRClient::OpenStream(const CPVRRecording &recording)
     PVR_RECORDING tag;
     WriteClientRecordingInfo(recording, tag);
 
-    try { bReturn = m_pStruct->OpenRecordedStream(tag); }
+    try
+    {
+      bReturn = m_pStruct->OpenRecordedStream(tag);
+      if (bReturn)
+      {
+        m_bCanPauseStream = m_pStruct->CanPauseStream();
+        m_bCanSeekStream = m_pStruct->CanSeekStream();
+      }
+    }
     catch (exception &e) { LogException(e, __FUNCTION__); }
   }
 
@@ -1280,12 +1306,40 @@ void CPVRClient::CloseStream(void)
   }
   else if (IsPlayingRecording())
   {
-    try { return m_pStruct->CloseRecordedStream(); }
+    try { m_pStruct->CloseRecordedStream(); }
     catch (exception &e) { LogException(e, "CloseRecordedStream()"); }
 
     CSingleLock lock(m_critSection);
     m_bIsPlayingRecording = false;
   }
+
+  m_bCanPauseStream = false;
+  m_bCanSeekStream = false;
+}
+
+void CPVRClient::PauseStream(bool bPaused)
+{
+  if (IsPlaying())
+  {
+    try { m_pStruct->PauseStream(bPaused); }
+    catch (exception &e) { LogException(e, "PauseStream()"); }
+  }
+}
+
+bool CPVRClient::CanPauseStream(void) const
+{
+  if (IsPlaying())
+    return m_bCanPauseStream;
+
+  return false;
+}
+
+bool CPVRClient::CanSeekStream(void) const
+{
+  if (IsPlaying())
+    return m_bCanSeekStream;
+
+  return false;
 }
 
 void CPVRClient::ResetQualityData(PVR_SIGNAL_STATUS &qualityInfo)
@@ -1293,13 +1347,13 @@ void CPVRClient::ResetQualityData(PVR_SIGNAL_STATUS &qualityInfo)
   memset(&qualityInfo, 0, sizeof(qualityInfo));
   if (g_guiSettings.GetBool("pvrplayback.signalquality"))
   {
-    strncpy(qualityInfo.strAdapterName, g_localizeStrings.Get(13205).c_str(), 1024);
-    strncpy(qualityInfo.strAdapterStatus, g_localizeStrings.Get(13205).c_str(), 1024);
+    strncpy(qualityInfo.strAdapterName, g_localizeStrings.Get(13205).c_str(), PVR_ADDON_NAME_STRING_LENGTH - 1);
+    strncpy(qualityInfo.strAdapterStatus, g_localizeStrings.Get(13205).c_str(), PVR_ADDON_NAME_STRING_LENGTH - 1);
   }
   else
   {
-    strncpy(qualityInfo.strAdapterName, g_localizeStrings.Get(13106).c_str(), 1024);
-    strncpy(qualityInfo.strAdapterStatus, g_localizeStrings.Get(13106).c_str(), 1024);
+    strncpy(qualityInfo.strAdapterName, g_localizeStrings.Get(13106).c_str(), PVR_ADDON_NAME_STRING_LENGTH - 1);
+    strncpy(qualityInfo.strAdapterStatus, g_localizeStrings.Get(13106).c_str(), PVR_ADDON_NAME_STRING_LENGTH - 1);
   }
 }
 

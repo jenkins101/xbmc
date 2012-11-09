@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,6 +67,7 @@ CGUIDialogKeyboardGeneric::CGUIDialogKeyboardGeneric()
   m_keyType = LOWER;
   m_strHeading = "";
   m_lastRemoteClickTime = 0;
+  m_loadType = KEEP_IN_MEMORY;
 }
 
 void CGUIDialogKeyboardGeneric::OnInitWindow()
@@ -633,7 +633,7 @@ bool CGUIDialogKeyboardGeneric::ShowAndGetInput(char_callback_t pCallback, const
   pKeyboard->SetHiddenInput(bHiddenInput);
   pKeyboard->SetText(initialString);
   // do this using a thread message to avoid render() conflicts
-  ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_KEYBOARD, g_windowManager.GetActiveWindow()};
+  ThreadMessage tMsg = {TMSG_DIALOG_DOMODAL, WINDOW_DIALOG_KEYBOARD, (unsigned int)g_windowManager.GetActiveWindow()};
   CApplicationMessenger::Get().SendMessage(tMsg, true);
   pKeyboard->Close();
 

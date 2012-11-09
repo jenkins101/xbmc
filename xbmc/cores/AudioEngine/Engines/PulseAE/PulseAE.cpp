@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 #include "utils/log.h"
 #include "settings/Settings.h"
 #include <pulse/pulseaudio.h>
+#include <pulse/simple.h>
 #include "guilib/LocalizeStrings.h"
 
 /* Static helpers */
@@ -100,6 +100,29 @@ CPulseAE::~CPulseAE()
 
 }
 
+bool CPulseAE::CanInit()
+{
+  pa_simple *s;
+  pa_sample_spec ss;
+ 
+  ss.format = PA_SAMPLE_S16NE;
+  ss.channels = 2;
+  ss.rate = 48000;
+ 
+  //create a pulse client, if this returns NULL, pulseaudio isn't running
+  s = pa_simple_new(NULL, "XBMC-test", PA_STREAM_PLAYBACK, NULL,"test", &ss, NULL, NULL, NULL);
+ 
+  if (s)
+  {
+    pa_simple_free(s);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
 bool CPulseAE::Initialize()
 {
   m_Volume = g_settings.m_fVolumeLevel;
@@ -161,6 +184,11 @@ bool CPulseAE::Suspend()
   return false;
 }
 
+bool CPulseAE::IsSuspended()
+{
+  return false;
+}
+
 bool CPulseAE::Resume()
 {
   /* TODO: see comments in Suspend() above */
@@ -168,7 +196,7 @@ bool CPulseAE::Resume()
   return false;
 }
 
-void CPulseAE::OnSettingsChange(std::string setting)
+void CPulseAE::OnSettingsChange(const std::string& setting)
 {
 }
 

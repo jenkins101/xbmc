@@ -15,9 +15,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -121,7 +120,7 @@ namespace EPG
     int  GetBlock(const CGUIListItemPtr &item, const int &channel);
     int  GetRealBlock(const CGUIListItemPtr &item, const int &channel);
     void MoveToRow(int row);
-    bool MoveChannel(bool direction);
+    bool MoveChannel(bool direction, bool wrapAround);
     bool MoveProgrammes(bool direction);
 
     CGUIListItemLayout *GetFocusedLayout() const;
@@ -214,7 +213,6 @@ namespace EPG
     unsigned int m_renderTime;
 
     int   m_scrollTime;
-    bool  m_channelWrapAround;
     bool  m_gridWrapAround; //! only when no more data available should this be true
 
     int m_programmeScrollLastTime;

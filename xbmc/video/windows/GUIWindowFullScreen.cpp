@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,38 +71,6 @@ using namespace PVR;
 #define LABEL_ROW3                       12
 #define CONTROL_GROUP_CHOOSER            503
 
-#define BTN_OSD_VIDEO                    13
-#define BTN_OSD_AUDIO                    14
-#define BTN_OSD_SUBTITLE                 15
-
-#define MENU_ACTION_AVDELAY               1
-#define MENU_ACTION_SEEK                  2
-#define MENU_ACTION_SUBTITLEDELAY         3
-#define MENU_ACTION_SUBTITLEONOFF         4
-#define MENU_ACTION_SUBTITLELANGUAGE      5
-#define MENU_ACTION_INTERLEAVED           6
-#define MENU_ACTION_FRAMERATECONVERSIONS  7
-#define MENU_ACTION_AUDIO_STREAM          8
-
-#define MENU_ACTION_NEW_BOOKMARK          9
-#define MENU_ACTION_NEXT_BOOKMARK        10
-#define MENU_ACTION_CLEAR_BOOKMARK       11
-
-#define MENU_ACTION_NOCACHE              12
-
-#define IMG_PAUSE                        16
-#define IMG_2X                           17
-#define IMG_4X                           18
-#define IMG_8X                           19
-#define IMG_16X                          20
-#define IMG_32X                          21
-
-#define IMG_2Xr                         117
-#define IMG_4Xr                         118
-#define IMG_8Xr                         119
-#define IMG_16Xr                        120
-#define IMG_32Xr                        121
-
 //Displays current position, visible after seek or when forced
 //Alt, use conditional visibility Player.DisplayAfterSeek
 #define LABEL_CURRENT_TIME               22
@@ -134,6 +101,7 @@ CGUIWindowFullScreen::CGUIWindowFullScreen(void)
   m_subsLayout = NULL;
   m_bGroupSelectShow = false;
   m_sliderAction = 0;
+  m_loadType = KEEP_IN_MEMORY;
   // audio
   //  - language
   //  - volume
@@ -155,19 +123,6 @@ CGUIWindowFullScreen::CGUIWindowFullScreen(void)
 
 CGUIWindowFullScreen::~CGUIWindowFullScreen(void)
 {}
-
-void CGUIWindowFullScreen::AllocResources(bool forceLoad)
-{
-  CGUIWindow::AllocResources(forceLoad);
-  DynamicResourceAlloc(false);
-}
-
-void CGUIWindowFullScreen::FreeResources(bool forceUnload)
-{
-  g_settings.Save();
-  DynamicResourceAlloc(true);
-  CGUIWindow::FreeResources(forceUnload);
-}
 
 bool CGUIWindowFullScreen::OnAction(const CAction &action)
 {
@@ -214,51 +169,31 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     break;
 
   case ACTION_STEP_BACK:
-    if (!g_application.CurrentFileItem().HasPVRChannelInfoTag())
-    {
-      if (m_timeCodePosition > 0)
-        SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
-      else
-        g_application.m_pPlayer->Seek(false, false);
-    }
+    if (m_timeCodePosition > 0)
+      SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
     else
-      SeekTV(false, false);
+      g_application.m_pPlayer->Seek(false, false);
     return true;
 
   case ACTION_STEP_FORWARD:
-    if (!g_application.CurrentFileItem().HasPVRChannelInfoTag())
-    {
-      if (m_timeCodePosition > 0)
-        SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_FORWARD);
-      else
-        g_application.m_pPlayer->Seek(true, false);
-    }
+    if (m_timeCodePosition > 0)
+      SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_FORWARD);
     else
-      SeekTV(true, false);
+      g_application.m_pPlayer->Seek(true, false);
     return true;
 
   case ACTION_BIG_STEP_BACK:
-    if (!g_application.CurrentFileItem().HasPVRChannelInfoTag())
-    {
-      if (m_timeCodePosition > 0)
-        SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
-      else
-        g_application.m_pPlayer->Seek(false, true);
-    }
+    if (m_timeCodePosition > 0)
+      SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
     else
-      SeekTV(false, true);
+      g_application.m_pPlayer->Seek(false, true);
     return true;
 
   case ACTION_BIG_STEP_FORWARD:
-    if (!g_application.CurrentFileItem().HasPVRChannelInfoTag())
-    {
-      if (m_timeCodePosition > 0)
-        SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_FORWARD);
-      else
-        g_application.m_pPlayer->Seek(true, true);
-    }
+    if (m_timeCodePosition > 0)
+      SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_FORWARD);
     else
-      SeekTV(true, true);
+      g_application.m_pPlayer->Seek(true, true);
     return true;
 
   case ACTION_NEXT_SCENE:
@@ -681,6 +616,18 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
 
       break;
     }
+  case ACTION_PREVIOUS_CHANNELGROUP:
+    {
+      if (g_application.CurrentFileItem().HasPVRChannelInfoTag())
+        ChangetheTVGroup(false);
+      return true;
+    }
+  case ACTION_NEXT_CHANNELGROUP:
+    {
+      if (g_application.CurrentFileItem().HasPVRChannelInfoTag())
+        ChangetheTVGroup(true);
+      return true;
+    }
   default:
       break;
   }
@@ -779,8 +726,6 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
     }
   case GUI_MSG_WINDOW_DEINIT:
     {
-      CGUIWindow::OnMessage(message);
-
       CGUIDialog *pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_OSD_TELETEXT);
       if (pDialog) pDialog->Close(true);
       CGUIDialogSlider *slider = (CGUIDialogSlider *)g_windowManager.GetWindow(WINDOW_DIALOG_SLIDER);
@@ -798,7 +743,9 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
       pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_OSD_CUTTER);
       if (pDialog) pDialog->Close(true);
 
-      FreeResources(true);
+      CGUIWindow::OnMessage(message);
+
+      g_settings.Save();
 
       CSingleLock lock (g_graphicsContext);
       g_graphicsContext.SetFullScreenVideo(false);
@@ -1005,10 +952,15 @@ void CGUIWindowFullScreen::FrameMove()
     g_application.m_pPlayer->GetVideoRect(SrcRect, DestRect);
     g_application.m_pPlayer->GetVideoAspectRatio(fAR);
     {
+      // Splitres scaling factor
+      RESOLUTION res = g_graphicsContext.GetVideoResolution();
+      float xscale = (float)g_settings.m_ResInfo[res].iScreenWidth  / (float)g_settings.m_ResInfo[res].iWidth;
+      float yscale = (float)g_settings.m_ResInfo[res].iScreenHeight / (float)g_settings.m_ResInfo[res].iHeight;
+
       CStdString strSizing;
       strSizing.Format(g_localizeStrings.Get(245),
                        (int)SrcRect.Width(), (int)SrcRect.Height(),
-                       (int)DestRect.Width(), (int)DestRect.Height(),
+                       (int)(DestRect.Width() * xscale), (int)(DestRect.Height() * yscale),
                        g_settings.m_fZoomAmount, fAR*g_settings.m_fPixelRatio, 
                        g_settings.m_fPixelRatio, g_settings.m_fVerticalShift);
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW2);
@@ -1021,13 +973,13 @@ void CGUIWindowFullScreen::FrameMove()
       CStdString strStatus;
       if (g_Windowing.IsFullScreen())
         strStatus.Format("%s %ix%i@%.2fHz - %s",
-          g_localizeStrings.Get(13287), g_settings.m_ResInfo[iResolution].iWidth,
-          g_settings.m_ResInfo[iResolution].iHeight, g_settings.m_ResInfo[iResolution].fRefreshRate,
+          g_localizeStrings.Get(13287), g_settings.m_ResInfo[iResolution].iScreenWidth,
+          g_settings.m_ResInfo[iResolution].iScreenHeight, g_settings.m_ResInfo[iResolution].fRefreshRate,
           g_localizeStrings.Get(244));
       else
         strStatus.Format("%s %ix%i - %s",
-          g_localizeStrings.Get(13287), g_settings.m_ResInfo[iResolution].iWidth,
-          g_settings.m_ResInfo[iResolution].iHeight, g_localizeStrings.Get(242));
+          g_localizeStrings.Get(13287), g_settings.m_ResInfo[iResolution].iScreenWidth,
+          g_settings.m_ResInfo[iResolution].iScreenHeight, g_localizeStrings.Get(242));
 
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW3);
       msg.SetLabel(strStatus);
@@ -1222,14 +1174,6 @@ void CGUIWindowFullScreen::SeekToTimeCodeStamp(SEEK_TYPE type, SEEK_DIRECTION di
 
   m_timeCodePosition = 0;
   m_timeCodeShow = false;
-}
-
-void CGUIWindowFullScreen::SeekTV(bool bPlus, bool bLargeStep)
-{
-  if (bLargeStep)
-    OnAction(CAction(bPlus ? ACTION_NEXT_ITEM : ACTION_PREV_ITEM));
-  else if (!bLargeStep)
-    ChangetheTVGroup(bPlus);
 }
 
 double CGUIWindowFullScreen::GetTimeCodeStamp()

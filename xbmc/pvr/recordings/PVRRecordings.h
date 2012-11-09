@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #include "XBDateTime.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
-#include "ThumbLoader.h"
+#include "video/VideoThumbLoader.h"
 
 #define PVR_ALL_RECORDINGS_PATH_EXTENSION "-1"
 
@@ -35,7 +34,6 @@ namespace PVR
   private:
     CCriticalSection             m_critSection;
     bool                         m_bIsUpdating;
-    CStdString                   m_strDirectoryHistory;
     CVideoThumbLoader            m_thumbLoader;
     std::vector<CPVRRecording *> m_recordings;
 

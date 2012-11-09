@@ -13,13 +13,13 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "PeripheralBusRPi.h"
+#include <libcec/cectypes.h>
 
 extern "C" {
 #include <interface/vmcs_host/vc_cecservice.h>
@@ -45,7 +45,7 @@ bool CPeripheralBusRPi::PerformDeviceScan(PeripheralScanResults &results)
     result.m_iVendorId   = RPI_PERIPHERAL_BUS_VID;
     result.m_iProductId  = RPI_PERIPHERAL_CEC_PID;
     result.m_type        = PERIPHERAL_CEC;
-    result.m_strLocation = "RPI/CEC";
+    result.m_strLocation = CEC_RPI_VIRTUAL_COM;
 
     if (!results.ContainsResult(result))
       results.m_results.push_back(result);

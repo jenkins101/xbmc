@@ -1,5 +1,5 @@
 /*
-*      Copyright (C) 2005-2008 Team XBMC
+*      Copyright (C) 2005-2012 Team XBMC
 *      http://www.xbmc.org
 *
 *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
 *  GNU General Public License for more details.
 *
 *  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, write to
-*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-*  http://www.gnu.org/copyleft/gpl.html
+*  along with XBMC; see the file COPYING.  If not, see
+*  <http://www.gnu.org/licenses/>.
 *
 */
 
@@ -89,6 +88,8 @@ struct RESOLUTION_INFO
   int iScreen;
   int iWidth;
   int iHeight;
+  int iScreenWidth;
+  int iScreenHeight;
   int iSubtitles;
   uint32_t dwFlags;
   float fPixelRatio;
@@ -101,6 +102,8 @@ public:
   {
     iWidth = width;
     iHeight = height;
+    iScreenWidth = width;
+    iScreenHeight = height;
     fPixelRatio = aspect ? ((float)width)/height / aspect : 1.0f;
     strMode = mode;
     bFullScreen = true;
@@ -115,6 +118,7 @@ public:
   {
     Overscan = res.Overscan; bFullScreen = res.bFullScreen;
     iScreen = res.iScreen; iWidth = res.iWidth; iHeight = res.iHeight;
+    iScreenWidth = res.iScreenWidth; iScreenHeight = res.iScreenHeight;
     iSubtitles = res.iSubtitles; dwFlags = res.dwFlags;
     fPixelRatio = res.fPixelRatio; fRefreshRate = res.fRefreshRate;
     strMode = res.strMode; strOutput = res.strOutput; strId = res.strId;

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2011 Team XBMC
+ *      Copyright (C) 2011-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,6 @@
 #include "utils/LangCodeExpander.h"
 #include "guilib/LocalizeStrings.h"
 
-#include "BitstreamConverter.h"
 #include "storage/MediaManager.h"
 #include "GUIUserMessages.h"
 #include "utils/StreamUtils.h"
@@ -77,12 +75,14 @@
 #include "utils/JobManager.h"
 //#include "cores/AudioEngine/AEFactory.h"
 //#include "cores/AudioEngine/Utils/AEUtil.h"
-#include "xbmc/ThumbLoader.h"
+#include "video/VideoThumbLoader.h"
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/windows/GUIWindowPVR.h"
 #include "filesystem/PVRFile.h"
+
+#include "utils/StringUtils.h"
 
 using namespace XFILE;
 using namespace PVR;
@@ -591,8 +591,8 @@ retry:
   if (m_pInputStream && ( m_pInputStream->IsStreamType(DVDSTREAM_TYPE_DVD)
                        || m_pInputStream->IsStreamType(DVDSTREAM_TYPE_BLURAY) ) )
   {
-    CLog::Log(LOGINFO, "COMXPlayer::OpenInputStream - DVD/BD not supported");
-    return false;
+    CLog::Log(LOGINFO, "COMXPlayer::OpenInputStream - DVD/BD not supported - Will try...");
+    // return false;
   }
 
   // find any available external subtitles for non dvd files
@@ -771,15 +771,6 @@ bool COMXPlayer::ReadPacket(DemuxPacket*& packet, CDemuxStream*& stream)
 
     if(packet)
     {
-      if(packet->iStreamId == DMX_SPECIALID_STREAMCHANGE)
-      {
-        // reset the caching state for pvr streams
-        if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER))
-          SetCaching(CACHESTATE_PVR);
-        CDVDDemuxUtils::FreeDemuxPacket(packet);
-        return true;
-      }
-
       UpdateCorrection(packet, m_offset_pts);
       if(packet->iStreamId < 0)
         return true;
@@ -805,6 +796,15 @@ bool COMXPlayer::ReadPacket(DemuxPacket*& packet, CDemuxStream*& stream)
 
   if(packet)
   {
+    // stream changed, update and open defaults
+    if(packet->iStreamId == DMX_SPECIALID_STREAMCHANGE)
+    {
+        m_SelectionStreams.Clear(STREAM_NONE, STREAM_SOURCE_DEMUX);
+        m_SelectionStreams.Update(m_pInputStream, m_pDemuxer);
+        OpenDefaultStreams();
+        return true;
+    }
+
     UpdateCorrection(packet, m_offset_pts);
     // this groupId stuff is getting a bit messy, need to find a better way
     // currently it is used to determine if a menu overlay is associated with a picture
@@ -902,30 +902,6 @@ bool COMXPlayer::IsBetterStream(COMXCurrentStream& current, CDemuxStream* stream
     if(current.type == STREAM_VIDEO    && current.id < 0)
       return true;
   }
-  else if (m_pInputStream && m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER))
-  {
-    if(stream->source == current.source &&
-       stream->iId    == current.id)
-      return false;
-
-    if(stream->disabled)
-      return false;
-
-    if(stream->type != current.type)
-      return false;
-
-    if(current.type == STREAM_AUDIO    && stream->iPhysicalId == m_dvd.iSelectedAudioStream)
-      return true;
-
-    if(current.type == STREAM_SUBTITLE && stream->iPhysicalId == m_dvd.iSelectedSPUStream)
-      return true;
-
-    if(current.type == STREAM_TELETEXT)
-      return true;
-
-    if(current.id < 0)
-      return true;
-  }
   else
   {
     if(stream->source == current.source
@@ -939,9 +915,6 @@ bool COMXPlayer::IsBetterStream(COMXCurrentStream& current, CDemuxStream* stream
       return false;
 
     if(current.type == STREAM_SUBTITLE)
-      return false;
-
-    if(current.type == STREAM_TELETEXT)
       return false;
 
     if(current.id < 0)
@@ -1268,6 +1241,18 @@ void COMXPlayer::Process()
           continue;
         }
 
+        // wait for omx components to finish
+        if(HasVideo() && !m_player_video.IsEOS())
+        {
+          Sleep(100);
+          continue;
+        }
+        if(HasAudio() && !m_player_audio.IsEOS())
+        {
+          Sleep(100);
+          continue;
+        }
+
         if (!m_pInputStream->IsEOF())
           CLog::Log(LOGINFO, "%s - eof reading from demuxer", __FUNCTION__);
 
@@ -1362,7 +1347,8 @@ void COMXPlayer::ProcessPacket(CDemuxStream* pStream, DemuxPacket* pPacket)
 
 void COMXPlayer::ProcessAudioData(CDemuxStream* pStream, DemuxPacket* pPacket)
 {
-  if (m_CurrentAudio.stream != (void*)pStream)
+  if (m_CurrentAudio.stream != (void*)pStream
+  ||  m_CurrentAudio.changes != pStream->changes)
   {
     /* check so that dmuxer hints or extra data hasn't changed */
     /* if they have, reopen stream */
@@ -1409,7 +1395,8 @@ void COMXPlayer::ProcessAudioData(CDemuxStream* pStream, DemuxPacket* pPacket)
 
 void COMXPlayer::ProcessVideoData(CDemuxStream* pStream, DemuxPacket* pPacket)
 {
-  if (m_CurrentVideo.stream != (void*)pStream)
+  if (m_CurrentVideo.stream != (void*)pStream
+  ||  m_CurrentVideo.changes != pStream->changes)
   {
     /* check so that dmuxer hints or extra data hasn't changed */
     /* if they have reopen stream */
@@ -1441,7 +1428,8 @@ void COMXPlayer::ProcessVideoData(CDemuxStream* pStream, DemuxPacket* pPacket)
 
 void COMXPlayer::ProcessSubData(CDemuxStream* pStream, DemuxPacket* pPacket)
 {
-  if (m_CurrentSubtitle.stream != (void*)pStream)
+  if (m_CurrentSubtitle.stream != (void*)pStream
+  ||  m_CurrentSubtitle.changes != pStream->changes)
   {
     /* check so that dmuxer hints or extra data hasn't changed */
     /* if they have reopen stream */
@@ -2017,11 +2005,6 @@ void COMXPlayer::OnExit()
     }
     m_pSubtitleDemuxer = NULL;
 
-    if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER) && g_PVRManager.IsPlayingRecording())
-    {
-      g_PVRManager.UpdateCurrentLastPlayedPosition(m_State.time / 1000);
-    }
-
     // destroy the inputstream
     if (m_pInputStream)
     {
@@ -2074,6 +2057,12 @@ void COMXPlayer::HandleMessages()
       {
         CDVDMsgPlayerSeek &msg(*((CDVDMsgPlayerSeek*)pMsg));
 
+        if (!m_State.canseek)
+        {
+          pMsg->Release();
+          continue;
+        }
+
         if(!msg.GetTrickPlay())
         {
           g_infoManager.SetDisplayAfterSeek(100000);
@@ -2100,10 +2089,7 @@ void COMXPlayer::HandleMessages()
 
         // set flag to indicate we have finished a seeking request
         if(!msg.GetTrickPlay())
-        {
-          g_infoManager.m_performingSeek = false;
           g_infoManager.SetDisplayAfterSeek();
-        }
 
         // dvd's will issue a HOP_CHANNEL that we need to skip
         if(m_pInputStream->IsStreamType(DVDSTREAM_TYPE_DVD))
@@ -2243,6 +2229,12 @@ void COMXPlayer::HandleMessages()
 
         if (speed != DVD_PLAYSPEED_PAUSE && m_playSpeed != DVD_PLAYSPEED_PAUSE && speed != m_playSpeed)
           m_callback.OnPlayBackSpeedChanged(speed / DVD_PLAYSPEED_NORMAL);
+
+        if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER) && speed != m_playSpeed)
+        {
+          CDVDInputStreamPVRManager* pvrinputstream = static_cast<CDVDInputStreamPVRManager*>(m_pInputStream);
+          pvrinputstream->Pause( speed == 0 );
+        }
 
         // if playspeed is different then DVD_PLAYSPEED_NORMAL or DVD_PLAYSPEED_PAUSE
         // audioplayer, stops outputing audio to audiorendere, but still tries to
@@ -2403,8 +2395,19 @@ void COMXPlayer::SetPlaySpeed(int speed)
   SynchronizeDemuxer(100);
 }
 
+bool COMXPlayer::CanPause()
+{
+  CSingleLock lock(m_StateSection);
+  return m_State.canpause;
+}
+
 void COMXPlayer::Pause()
 {
+  CSingleLock lock(m_StateSection);
+  if (!m_State.canpause)
+    return;
+  lock.Leave();
+
   if(m_playSpeed != DVD_PLAYSPEED_PAUSE && (m_caching == CACHESTATE_FULL || m_caching == CACHESTATE_PVR))
   {
     SetCaching(CACHESTATE_DONE);
@@ -2448,11 +2451,15 @@ bool COMXPlayer::IsPassthrough() const
 
 bool COMXPlayer::CanSeek()
 {
-  return GetTotalTime() > 0;
+  CSingleLock lock(m_StateSection);
+  return m_State.canseek;
 }
 
 void COMXPlayer::Seek(bool bPlus, bool bLargeStep)
 {
+  if (!m_State.canseek)
+    return;
+
   if(((bPlus && GetChapter() < GetChapterCount())
   || (!bPlus && GetChapter() > 1)) && bLargeStep)
   {
@@ -3528,6 +3535,7 @@ bool COMXPlayer::OnAction(const CAction &action)
     {
       case ACTION_MOVE_UP:
       case ACTION_NEXT_ITEM:
+      case ACTION_CHANNEL_UP:
         m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_NEXT));
         g_infoManager.SetDisplayAfterSeek();
         ShowPVRChannelInfo();
@@ -3536,6 +3544,7 @@ bool COMXPlayer::OnAction(const CAction &action)
 
       case ACTION_MOVE_DOWN:
       case ACTION_PREV_ITEM:
+      case ACTION_CHANNEL_DOWN:
         m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_PREV));
         g_infoManager.SetDisplayAfterSeek();
         ShowPVRChannelInfo();
@@ -3796,6 +3805,18 @@ void COMXPlayer::UpdatePlayState(double timeout)
         state.time_total = m_dvd.iDVDStillTime;
       }
     }
+
+    if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER))
+    {
+      CDVDInputStreamPVRManager* pvrinputstream = static_cast<CDVDInputStreamPVRManager*>(m_pInputStream);
+      state.canpause = pvrinputstream->CanPause();
+      state.canseek  = pvrinputstream->CanSeek();
+    }
+    else
+    {
+      state.canseek  = state.time_total > 0 ? true : false;
+      state.canpause = true;
+    }
   }
 
   if (m_Edl.HasCut())
@@ -4023,6 +4044,40 @@ void COMXPlayer::Update(bool bPauseDrawing)
 void COMXPlayer::GetVideoAspectRatio(float &fAR)
 {
   fAR = g_renderManager.GetAspectRatio();
+}
+
+void COMXPlayer::GetRenderFeatures(std::vector<int> &renderFeatures)
+{
+  renderFeatures.push_back(RENDERFEATURE_STRETCH);
+  renderFeatures.push_back(RENDERFEATURE_CROP);
+}
+
+void COMXPlayer::GetDeinterlaceMethods(std::vector<int> &deinterlaceMethods)
+{
+  deinterlaceMethods.push_back(VS_INTERLACEMETHOD_DEINTERLACE);
+}
+
+void COMXPlayer::GetDeinterlaceModes(std::vector<int> &deinterlaceModes)
+{
+  deinterlaceModes.push_back(VS_DEINTERLACEMODE_AUTO);
+  deinterlaceModes.push_back(VS_DEINTERLACEMODE_OFF);
+  deinterlaceModes.push_back(VS_DEINTERLACEMODE_FORCE);
+}
+
+void COMXPlayer::GetScalingMethods(std::vector<int> &scalingMethods)
+{
+}
+
+void COMXPlayer::GetAudioCapabilities(std::vector<int> &audioCaps)
+{
+  audioCaps.push_back(IPC_AUD_OFFSET);
+  audioCaps.push_back(IPC_AUD_SELECT_STREAM);
+  audioCaps.push_back(IPC_AUD_SELECT_OUTPUT);
+}
+
+void COMXPlayer::GetSubtitleCapabilities(std::vector<int> &subCaps)
+{
+  subCaps.push_back(IPC_SUBS_ALL);
 }
 
 #endif

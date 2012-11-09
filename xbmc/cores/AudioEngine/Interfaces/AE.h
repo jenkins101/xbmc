@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,6 +50,12 @@ protected:
 
   IAE() {}
   virtual ~IAE() {}
+
+  /**
+   * Returns true when it should be possible to initialize this engine, if it returns false
+   * CAEFactory can possibly fall back to a different one
+   */
+  virtual bool CanInit() { return true; }
 
   /**
    * Initializes the AudioEngine, called by CFactory when it is time to initialize the audio engine.
@@ -89,7 +94,7 @@ public:
    * Callback to alert the AudioEngine of setting changes
    * @param setting The name of the setting that was changed
    */
-  virtual void OnSettingsChange(std::string setting) {}
+  virtual void OnSettingsChange(const std::string& setting) {}
 
   /**
    * Returns the current master volume level of the AudioEngine

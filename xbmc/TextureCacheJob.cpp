@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "utils/StringUtils.h"
 #include "URL.h"
 #include "FileItem.h"
-#include "ThumbLoader.h"
+#include "music/MusicThumbLoader.h"
 #include "music/tags/MusicInfoTag.h"
 
 CTextureCacheJob::CTextureCacheJob(const CStdString &url, const CStdString &oldHash)
@@ -125,16 +124,12 @@ CStdString CTextureCacheJob::DecodeImageURL(const CStdString &url, unsigned int 
     // format is image://[type@]<url_encoded_path>?options
     CURL thumbURL(url);
 
-    if (!thumbURL.GetUserName().IsEmpty())
-    {
-      if (thumbURL.GetUserName() == "music")
-        additional_info = "music";
-      else
-        return ""; // we don't re-cache special images (eg picturefolder/video embedded thumbs)
-    }
+    if (!CTextureCache::CanCacheImageURL(thumbURL))
+      return "";
+    if (thumbURL.GetUserName() == "music")
+      additional_info = "music";
 
     image = thumbURL.GetHostName();
-    CURL::Decode(image);
 
     CStdString optionString = thumbURL.GetOptions().Mid(1);
     optionString.TrimRight('/'); // in case XBMC adds a slash

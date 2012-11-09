@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -133,7 +132,7 @@ bool CMusicInfoLoader::LoadItem(CFileItem* pItem)
   if (mapItem && mapItem->m_dateTime==pItem->m_dateTime && mapItem->HasMusicInfoTag() && mapItem->GetMusicInfoTag()->Loaded())
   { // Query map if we previously cached the file on HD
     *pItem->GetMusicInfoTag() = *mapItem->GetMusicInfoTag();
-    pItem->SetThumbnailImage(mapItem->GetThumbnailImage());
+    pItem->SetArt("thumb", mapItem->GetArt("thumb"));
     return true;
   }
 
@@ -153,7 +152,7 @@ bool CMusicInfoLoader::LoadItem(CFileItem* pItem)
   if ((song=m_songsMap.Find(pItem->GetPath()))!=NULL)
   {  // Have we loaded this item from database before
     pItem->GetMusicInfoTag()->SetSong(*song);
-    pItem->SetThumbnailImage(song->strThumb);
+    pItem->SetArt("thumb", song->strThumb);
   }
   else if (pItem->IsMusicDb())
   { // a music db item that doesn't have tag loaded - grab details from the database
@@ -163,7 +162,7 @@ bool CMusicInfoLoader::LoadItem(CFileItem* pItem)
     if (m_musicDatabase.GetSongById(param.GetSongId(), song))
     {
       pItem->GetMusicInfoTag()->SetSong(song);
-      pItem->SetThumbnailImage(song.strThumb);
+      pItem->SetArt("thumb", song.strThumb);
     }
   }
   else if (g_guiSettings.GetBool("musicfiles.usetags") || pItem->IsCDDA())
@@ -195,11 +194,16 @@ void CMusicInfoLoader::OnLoaderFinish()
     songs.reserve(m_pVecItems->Size());
     for (int i = 0; i < m_pVecItems->Size(); ++i)
     {
-      CSong song(*m_pVecItems->Get(i)->GetMusicInfoTag());
-      if (m_pVecItems->Get(i)->HasThumbnail())
-        song.strThumb = m_pVecItems->Get(i)->GetThumbnailImage();
-      song.idSong = i; // for the lookup below
-      songs.push_back(song);
+      CFileItemPtr pItem = m_pVecItems->Get(i);
+      if (pItem->m_bIsFolder || pItem->IsPlayList() || pItem->IsNFO() || pItem->IsInternetStream())
+        continue;
+      if (pItem->HasMusicInfoTag() && pItem->GetMusicInfoTag()->Loaded())
+      {
+        CSong song(*pItem->GetMusicInfoTag());
+        song.strThumb = pItem->GetArt("thumb");
+        song.idSong = i; // for the lookup below
+        songs.push_back(song);
+      }
     }
     VECALBUMS albums;
     CMusicInfoScanner::CategoriseAlbums(songs, albums);
@@ -210,9 +214,9 @@ void CMusicInfoLoader::OnLoaderFinish()
       for (VECSONGS::iterator j = i->songs.begin(); j != i->songs.end(); ++j)
       {
         if (!j->strThumb.empty())
-          m_pVecItems->Get(j->idSong)->SetThumbnailImage(j->strThumb);
+          m_pVecItems->Get(j->idSong)->SetArt("thumb", j->strThumb);
         else
-          m_pVecItems->Get(j->idSong)->SetThumbnailImage(albumArt);
+          m_pVecItems->Get(j->idSong)->SetArt("thumb", albumArt);
       }
     }
   }

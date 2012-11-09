@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "settings/AdvancedSettings.h"
 #include "settings/GUISettings.h"
 #include "utils/log.h"
+#include "utils/Variant.h"
 #include "addons/include/xbmc_pvr_types.h"
 
 using namespace std;
@@ -201,6 +201,20 @@ CEpgInfoTag &CEpgInfoTag::operator =(const CEpgInfoTag &other)
   return *this;
 }
 
+void CEpgInfoTag::Serialize(CVariant &value) const
+{
+  value["rating"] = m_iStarRating;
+  value["title"] = m_strTitle;
+  value["plotoutline"] = m_strPlotOutline;
+  value["plot"] = m_strPlot;
+  value["genre"] = m_genre;
+  value["filenameandpath"] = m_strFileNameAndPath;
+  value["starttime"] = m_startTime.IsValid() ? m_startTime.GetAsDBDateTime() : StringUtils::EmptyString;
+  value["endtime"] = m_endTime.IsValid() ? m_endTime.GetAsDBDateTime() : StringUtils::EmptyString;
+  value["runtime"] = StringUtils::Format("%d", GetDuration() / 60);
+  value["firstaired"] = m_firstAired.IsValid() ? m_firstAired.GetAsDBDate() : StringUtils::EmptyString;
+}
+
 bool CEpgInfoTag::Changed(void) const
 {
   CSingleLock lock(m_critSection);
@@ -246,6 +260,21 @@ float CEpgInfoTag::ProgressPercentage(void) const
     fReturn = 100;
 
   return fReturn;
+}
+
+int CEpgInfoTag::Progress(void) const
+{
+  int iDuration;
+  time_t currentTime, startTime;
+  CDateTime::GetCurrentDateTime().GetAsUTCDateTime().GetAsTime(currentTime);
+
+  CSingleLock lock(m_critSection);
+  m_startTime.GetAsTime(startTime);
+  iDuration = currentTime - startTime;
+  if (iDuration <= 0)
+    return 0;
+
+  return iDuration;
 }
 
 CEpgInfoTagPtr CEpgInfoTag::GetNextEvent(void) const
@@ -452,16 +481,9 @@ void CEpgInfoTag::SetPlot(const CStdString &strPlot)
   bool bUpdate(false);
   {
     CSingleLock lock(m_critSection);
-    CStdString strPlotClean = (m_strPlotOutline.length() > 0 && strPlot.Left(m_strPlotOutline.length()).Equals(m_strPlotOutline)) ?
-      strPlot.Right(strPlot.length() - m_strPlotOutline.length()) :
-      strPlot;
-
-    if (m_strPlot != strPlotClean)
-    {
-      m_strPlot = strPlotClean;
-      m_bChanged = true;
-      bUpdate = true;
-    }
+    bUpdate = !m_strPlot.Equals(strPlot);
+    m_bChanged |= bUpdate;
+    m_strPlot = strPlot;
   }
   if (bUpdate)
     UpdatePath();
@@ -917,7 +939,11 @@ bool CEpgInfoTag::Persist(bool bSingleUpdate /* = true */)
   CSingleLock lock(m_critSection);
   if (!m_bChanged)
     return true;
+
+#if EPG_DEBUGGING
   CLog::Log(LOGDEBUG, "Epg - %s - Infotag '%s' %s, persisting...", __FUNCTION__, m_strTitle.c_str(), m_iBroadcastId > 0 ? "has changes" : "is new");
+#endif
+
   CEpgDatabase *database = g_EpgContainer.GetDatabase();
   if (!database || (bSingleUpdate && !database->IsOpen()))
   {

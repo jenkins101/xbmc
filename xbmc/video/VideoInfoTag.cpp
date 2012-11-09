@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,6 +70,7 @@ void CVideoInfoTag::Reset()
   m_iYear = 0;
   m_iSeason = -1;
   m_iEpisode = -1;
+  m_strUniqueId.clear();
   m_iSpecialSortSeason = -1;
   m_iSpecialSortEpisode = -1;
   m_fRating = 0.0f;
@@ -121,6 +121,7 @@ bool CVideoInfoTag::Save(TiXmlNode *node, const CStdString &tag, bool savePathIn
   {
     XMLUtils::SetInt(movie, "season", m_iSeason);
     XMLUtils::SetInt(movie, "episode", m_iEpisode);
+    XMLUtils::SetString(movie, "uniqueid", m_strUniqueId);
     XMLUtils::SetInt(movie, "displayseason",m_iSpecialSortSeason);
     XMLUtils::SetInt(movie, "displayepisode",m_iSpecialSortEpisode);
   }
@@ -315,6 +316,7 @@ void CVideoInfoTag::Archive(CArchive& ar)
     ar << m_iYear;
     ar << m_iSeason;
     ar << m_iEpisode;
+    ar << m_strUniqueId;
     ar << m_fRating;
     ar << m_iDbId;
     ar << m_iFileId;
@@ -392,6 +394,7 @@ void CVideoInfoTag::Archive(CArchive& ar)
     ar >> m_iYear;
     ar >> m_iSeason;
     ar >> m_iEpisode;
+    ar >> m_strUniqueId;
     ar >> m_fRating;
     ar >> m_iDbId;
     ar >> m_iFileId;
@@ -417,7 +420,7 @@ void CVideoInfoTag::Archive(CArchive& ar)
   }
 }
 
-void CVideoInfoTag::Serialize(CVariant& value)
+void CVideoInfoTag::Serialize(CVariant& value) const
 {
   value["director"] = m_director;
   value["writer"] = m_writingCredits;
@@ -465,6 +468,7 @@ void CVideoInfoTag::Serialize(CVariant& value)
   value["year"] = m_iYear;
   value["season"] = m_iSeason;
   value["episode"] = m_iEpisode;
+  value["uniqueid"]["unknown"] = m_strUniqueId;
   value["rating"] = m_fRating;
   value["dbid"] = m_iDbId;
   value["fileid"] = m_iFileId;
@@ -520,7 +524,8 @@ void CVideoInfoTag::ToSortable(SortItem& sortable)
   sortable[FieldTrackNumber] = m_iTrack;
   sortable[FieldTag] = m_tags;
 
-  sortable[FieldTime] = m_streamDetails.GetVideoDuration();
+  if (m_streamDetails.HasItems() && m_streamDetails.GetVideoDuration() > 0)
+    sortable[FieldTime] = m_streamDetails.GetVideoDuration();
   sortable[FieldVideoResolution] = m_streamDetails.GetVideoHeight();
   sortable[FieldVideoAspectRatio] = m_streamDetails.GetVideoAspect();
   sortable[FieldVideoCodec] = m_streamDetails.GetVideoCodec();
@@ -570,6 +575,7 @@ void CVideoInfoTag::ParseNative(const TiXmlElement* movie, bool prioritise)
   XMLUtils::GetInt(movie, "season", m_iSeason);
   XMLUtils::GetInt(movie, "episode", m_iEpisode);
   XMLUtils::GetInt(movie, "track", m_iTrack);
+  XMLUtils::GetString(movie, "uniqueid", m_strUniqueId);
   XMLUtils::GetInt(movie, "displayseason", m_iSpecialSortSeason);
   XMLUtils::GetInt(movie, "displayepisode", m_iSpecialSortEpisode);
   int after=0;

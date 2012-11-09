@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,19 +70,6 @@ CGUIDialogPVRChannelManager::CGUIDialogPVRChannelManager(void) :
 CGUIDialogPVRChannelManager::~CGUIDialogPVRChannelManager(void)
 {
   delete m_channelItems;
-}
-
-bool CGUIDialogPVRChannelManager::OnActionClose(const CAction &action)
-{
-  bool bReturn(false);
-  int iActionId = action.GetID();
-  if (iActionId == ACTION_PREVIOUS_MENU || iActionId == ACTION_PARENT_DIR)
-  {
-    Close();
-    bReturn = true;
-  }
-
-  return bReturn;
 }
 
 bool CGUIDialogPVRChannelManager::OnActionMove(const CAction &action)
@@ -143,9 +129,8 @@ bool CGUIDialogPVRChannelManager::OnActionMove(const CAction &action)
 
 bool CGUIDialogPVRChannelManager::OnAction(const CAction& action)
 {
-  return OnActionClose(action) ||
-      OnActionMove(action) ||
-      CGUIDialog::OnAction(action);
+  return OnActionMove(action) ||
+         CGUIDialog::OnAction(action);
 }
 
 bool CGUIDialogPVRChannelManager::OnMessageInit(CGUIMessage &message)
@@ -326,14 +311,14 @@ bool CGUIDialogPVRChannelManager::OnClickButtonChannelLogo(CGUIMessage &message)
   if (!pItem->GetProperty("Icon").asString().empty())
   {
     CFileItemPtr current(new CFileItem("thumb://Current", false));
-    current->SetThumbnailImage(pItem->GetPVRChannelInfoTag()->IconPath());
+    current->SetArt("thumb", pItem->GetPVRChannelInfoTag()->IconPath());
     current->SetLabel(g_localizeStrings.Get(20016));
     items.Add(current);
   }
-  else if (pItem->HasThumbnail())
+  else if (pItem->HasArt("thumb"))
   { // already have a thumb that the share doesn't know about - must be a local one, so we mayaswell reuse it.
     CFileItemPtr current(new CFileItem("thumb://Current", false));
-    current->SetThumbnailImage(pItem->GetThumbnailImage());
+    current->SetArt("thumb", pItem->GetArt("thumb"));
     current->SetLabel(g_localizeStrings.Get(20016));
     items.Add(current);
   }
@@ -817,9 +802,8 @@ void CGUIDialogPVRChannelManager::SaveList(void)
     pDlgProgress->SetPercentage(iListPtr * 100 / m_channelItems->Size());
   }
 
-  group->SortByChannelNumber();
+  group->SortAndRenumber();
   group->Persist();
-  group->ResetChannelNumberCache();
   m_bContainsChanges = false;
   SetItemsUnchanged();
   pDlgProgress->Close();

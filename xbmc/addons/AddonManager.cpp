@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2009 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 #include "AddonManager.h"
@@ -437,7 +436,7 @@ bool CAddonMgr::GetAddon(const CStdString &str, AddonPtr &addon, const TYPE &typ
   cp_plugin_info_t *cpaddon = m_cpluff->get_plugin_info(m_cp_context, str.c_str(), &status);
   if (status == CP_OK && cpaddon)
   {
-    addon = GetAddonFromDescriptor(cpaddon);
+    addon = GetAddonFromDescriptor(cpaddon, type==ADDON_UNKNOWN?"":TranslateType(type));
     m_cpluff->release_info(m_cp_context, cpaddon);
 
     if (addon && addon.get())
@@ -717,7 +716,8 @@ bool CAddonMgr::GetExtList(cp_cfg_element_t *base, const char *path, vector<CStd
   return true;
 }
 
-AddonPtr CAddonMgr::GetAddonFromDescriptor(const cp_plugin_info_t *info)
+AddonPtr CAddonMgr::GetAddonFromDescriptor(const cp_plugin_info_t *info,
+                                           const CStdString& type)
 {
   if (!info)
     return AddonPtr();
@@ -733,7 +733,8 @@ AddonPtr CAddonMgr::GetAddonFromDescriptor(const cp_plugin_info_t *info)
   // grab a relevant extension point, ignoring our xbmc.addon.metadata extension point
   for (unsigned int i = 0; i < info->num_extensions; ++i)
   {
-    if (0 != strcmp("xbmc.addon.metadata", info->extensions[i].ext_point_id))
+    if (0 != strcmp("xbmc.addon.metadata", info->extensions[i].ext_point_id) &&
+        (type.empty() || 0 == strcmp(type.c_str(), info->extensions[i].ext_point_id)))
     { // note that Factory takes care of whether or not we have platform support
       return Factory(&info->extensions[i]);
     }

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,6 +57,7 @@ CGUIWindowLoginScreen::CGUIWindowLoginScreen(void)
   watch.StartZero();
   m_vecItems = new CFileItemList;
   m_iSelectedItem = -1;
+  m_loadType = KEEP_IN_MEMORY;
 }
 
 CGUIWindowLoginScreen::~CGUIWindowLoginScreen(void)
@@ -198,9 +198,9 @@ void CGUIWindowLoginScreen::Update()
     else
       strLabel.Format(g_localizeStrings.Get(20112), profile->getDate());
     item->SetLabel2(strLabel);
-    item->SetThumbnailImage(profile->getThumb());
+    item->SetArt("thumb", profile->getThumb());
     if (profile->getThumb().IsEmpty() || profile->getThumb().Equals("-"))
-      item->SetThumbnailImage("unknown-user.png");
+      item->SetArt("thumb", "unknown-user.png");
     item->SetLabelPreformated(true);
     m_vecItems->Add(item);
   }
@@ -271,7 +271,6 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
 
   // stop PVR related services
   g_application.StopPVRManager();
-  g_application.StopEPGManager();
 
   if (profile != 0 || !g_settings.IsMasterUser())
   {
@@ -309,7 +308,6 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
   ADDON::CAddonMgr::Get().StartServices(false);
 
   // start PVR related services
-  g_application.StartEPGManager();
   g_application.StartPVRManager();
 
   g_windowManager.ChangeActiveWindow(g_SkinInfo->GetFirstWindow());

@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -136,6 +135,31 @@ TEST(TestVariant, VariantTypeNull)
 
   EXPECT_TRUE(a.isNull());
   EXPECT_EQ(CVariant::VariantTypeNull, a.type());
+}
+
+TEST(TestVariant, VariantFromMap)
+{
+  std::map<std::string, std::string> strMap;
+  strMap["key"] = "value";
+  CVariant a = strMap;
+  
+  EXPECT_TRUE(a.isObject());
+  EXPECT_TRUE(a.size() == 1);
+  EXPECT_EQ(CVariant::VariantTypeObject, a.type());
+  EXPECT_TRUE(a.isMember("key"));
+  EXPECT_TRUE(a["key"].isString());
+  EXPECT_STREQ(a["key"].asString().c_str(), "value");
+  
+  std::map<std::string, CVariant> variantMap;
+  variantMap["key"] = CVariant("value");
+  CVariant b = variantMap;
+  
+  EXPECT_TRUE(b.isObject());
+  EXPECT_TRUE(b.size() == 1);
+  EXPECT_EQ(CVariant::VariantTypeObject, b.type());
+  EXPECT_TRUE(b.isMember("key"));
+  EXPECT_TRUE(b["key"].isString());
+  EXPECT_STREQ(b["key"].asString().c_str(), "value");
 }
 
 TEST(TestVariant, operatorTest)

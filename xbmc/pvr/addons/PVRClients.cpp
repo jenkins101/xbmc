@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -23,6 +22,7 @@
 
 #include "Application.h"
 #include "ApplicationMessenger.h"
+#include "GUIUserMessages.h"
 #include "settings/GUISettings.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogSelect.h"
@@ -186,16 +186,15 @@ bool CPVRClients::HasEnabledClients(void) const
 
 bool CPVRClients::StopClient(AddonPtr client, bool bRestart)
 {
+  CSingleLock lock(m_critSection);  
   int iId = GetClientId(client);
   PVR_CLIENT mappedClient;
   if (GetConnectedClient(iId, mappedClient))
   {
-    g_PVRManager.StopUpdateThreads();
     if (bRestart)
       mappedClient->ReCreate();
     else
       mappedClient->Destroy();
-    g_PVRManager.StartUpdateThreads();
 
     return true;
   }
@@ -303,9 +302,9 @@ bool CPVRClients::SwitchChannel(const CPVRChannel &channel)
       // stream URL should always be opened as a new file
       !channel.StreamURL().IsEmpty() || !currentChannel->StreamURL().IsEmpty())
   {
-    CloseStream();
     if (channel.StreamURL().IsEmpty())
     {
+      CloseStream();
       bSwitchSuccessful = OpenStream(channel, true);
     }
     else
@@ -536,6 +535,30 @@ bool CPVRClients::CanRecordInstantly(void)
       currentChannel->CanRecord();
 }
 
+bool CPVRClients::CanPauseStream(void) const
+{
+  PVR_CLIENT client;
+
+  if (GetPlayingClient(client))
+  {
+    return m_bIsPlayingRecording || client->CanPauseStream();
+  }
+
+  return false;
+}
+
+bool CPVRClients::CanSeekStream(void) const
+{
+  PVR_CLIENT client;
+
+  if (GetPlayingClient(client))
+  {
+    return m_bIsPlayingRecording || client->CanSeekStream();
+  }
+
+  return false;
+}
+
 PVR_ERROR CPVRClients::GetEPGForChannel(const CPVRChannel &channel, CEpg *epg, time_t start, time_t end)
 {
   PVR_ERROR error(PVR_ERROR_UNKNOWN);
@@ -631,7 +654,7 @@ bool CPVRClients::GetMenuHooks(int iClientID, PVR_MENUHOOKS *hooks)
   PVR_CLIENT client;
   if (GetConnectedClient(iClientID, client) && client->HaveMenuHooks())
   {
-    hooks = client->GetMenuHooks();
+    *hooks = *(client->GetMenuHooks());
     bReturn = true;
   }
 
@@ -815,8 +838,13 @@ bool CPVRClients::UpdateAndInitialiseClients(bool bInitialiseAllClients /* = fal
 
     if (!bEnabled && IsKnownClient(clientAddon))
     {
+      CSingleLock lock(m_critSection);
       /* stop the client and remove it from the db */
       StopClient(clientAddon, false);
+      ADDON::VECADDONS::iterator addonPtr = std::find(m_addons.begin(), m_addons.end(), clientAddon);
+      if (addonPtr != m_addons.end())
+        m_addons.erase(addonPtr);
+
     }
     else if (bEnabled && (bInitialiseAllClients || !IsKnownClient(clientAddon) || !IsConnectedClient(clientAddon)))
     {
@@ -833,18 +861,23 @@ bool CPVRClients::UpdateAndInitialiseClients(bool bInitialiseAllClients /* = fal
       }
       else
       {
+        ADDON_STATUS status(ADDON_STATUS_UNKNOWN);
         PVR_CLIENT addon;
-        if (!GetClient(iClientId, addon))
         {
-          CLog::Log(LOGWARNING, "%s - failed to find add-on %s, disabling it", __FUNCTION__, clientAddon->Name().c_str());
-          disableAddons.push_back(clientAddon);
-          bDisabled = true;
+          CSingleLock lock(m_critSection);
+          if (!GetClient(iClientId, addon))
+          {
+            CLog::Log(LOGWARNING, "%s - failed to find add-on %s, disabling it", __FUNCTION__, clientAddon->Name().c_str());
+            disableAddons.push_back(clientAddon);
+            bDisabled = true;
+          }
         }
+
         // re-check the enabled status. newly installed clients get disabled when they're added to the db
-        else if (addon->Enabled() && !addon->Create(iClientId))
+        if (!bDisabled && addon->Enabled() && (status = addon->Create(iClientId)) != ADDON_STATUS_OK)
         {
-          CLog::Log(LOGWARNING, "%s - failed to create add-on %s", __FUNCTION__, clientAddon->Name().c_str());
-          if (!addon.get() || !addon->DllLoaded())
+          CLog::Log(LOGWARNING, "%s - failed to create add-on %s, status = %d", __FUNCTION__, clientAddon->Name().c_str(), status);
+          if (!addon.get() || !addon->DllLoaded() || status == ADDON_STATUS_PERMANENT_FAILURE)
           {
             // failed to load the dll of this add-on, disable it
             CLog::Log(LOGWARNING, "%s - failed to load the dll for add-on %s, disabling it", __FUNCTION__, clientAddon->Name().c_str());
@@ -1033,6 +1066,17 @@ bool CPVRClients::UpdateAddons(void)
     CSingleLock lock(m_critSection);
     m_addons = addons;
   }
+  
+  // handle "new" addons which aren't yet in the db - these have to be added first
+  for (unsigned iClientPtr = 0; iClientPtr < m_addons.size(); iClientPtr++)
+  {
+    const AddonPtr clientAddon = m_addons.at(iClientPtr);
+  
+    if (!m_addonDb.HasAddon(clientAddon->ID()))
+    {
+      m_addonDb.AddAddon(clientAddon, -1);
+    }
+  }
 
   if ((!bReturn || addons.size() == 0) && !m_bNoAddonWarningDisplayed &&
       !CAddonMgr::Get().HasAddons(ADDON_PVRDLL, false) &&
@@ -1042,7 +1086,10 @@ bool CPVRClients::UpdateAddons(void)
     // You need a tuner, backend software, and an add-on for the backend to be able to use PVR.
     // Please visit xbmc.org/pvr to learn more.
     m_bNoAddonWarningDisplayed = true;
+    g_guiSettings.SetBool("pvrmanager.enabled", false);
     CGUIDialogOK::ShowAndGetInput(19271, 19272, 19273, 19274);
+    CGUIMessage msg(GUI_MSG_UPDATE, WINDOW_SETTINGS_MYPVR, 0);
+    g_windowManager.SendThreadMessage(msg, WINDOW_SETTINGS_MYPVR);
   }
 
   return bReturn;
@@ -1240,6 +1287,13 @@ int64_t CPVRClients::GetStreamPosition(void)
   return -EINVAL;
 }
 
+void CPVRClients::PauseStream(bool bPaused)
+{
+  PVR_CLIENT client;
+  if (GetPlayingClient(client))
+    client->PauseStream(bPaused);
+}
+
 CStdString CPVRClients::GetCurrentInputFormat(void) const
 {
   CStdString strReturn;
@@ -1254,6 +1308,8 @@ PVR_STREAM_PROPERTIES CPVRClients::GetCurrentStreamProperties(void)
 {
   PVR_STREAM_PROPERTIES props;
   PVR_CLIENT client;
+  
+  memset(&props, 0, sizeof(props));
   if (GetPlayingClient(client))
     client->GetStreamProperties(&props);
 

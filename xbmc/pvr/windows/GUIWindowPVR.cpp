@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +48,7 @@ CGUIWindowPVR::CGUIWindowPVR(void) :
   m_windowSearch(NULL),
   m_windowTimers(NULL)
 {
+  m_loadType = LOAD_EVERY_TIME;
 }
 
 CGUIWindowPVR::~CGUIWindowPVR(void)
@@ -65,6 +65,20 @@ CGUIWindowPVRCommon *CGUIWindowPVR::GetActiveView(void) const
 void CGUIWindowPVR::SetActiveView(CGUIWindowPVRCommon *window)
 {
   CSingleLock lock(m_critSection);
+
+  if ((!window && m_currentSubwindow) || (window && !m_currentSubwindow) ||
+      (window->GetWindowId() != m_currentSubwindow->GetWindowId()))
+  {
+    // switched views, save current history
+    if (m_currentSubwindow)
+      m_currentSubwindow->m_history = m_history;
+
+    // update m_history
+    if (window)
+      m_history = window->m_history;
+    else
+      m_history.ClearPathHistory();
+  }
   m_currentSubwindow = window;
 }
 

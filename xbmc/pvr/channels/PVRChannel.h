@@ -15,9 +15,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "addons/include/xbmc_pvr_types.h"
 #include "utils/Observer.h"
 #include "threads/CriticalSection.h"
+#include "utils/ISerializable.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -43,7 +43,7 @@ namespace PVR
   typedef boost::shared_ptr<PVR::CPVRChannel> CPVRChannelPtr;
 
   /** PVR Channel class */
-  class CPVRChannel : public Observable
+  class CPVRChannel : public Observable, public ISerializable
   {
     friend class CPVRDatabase;
     friend class CPVRChannelGroupInternal;
@@ -57,6 +57,8 @@ namespace PVR
     bool operator ==(const CPVRChannel &right) const;
     bool operator !=(const CPVRChannel &right) const;
     CPVRChannel &operator=(const CPVRChannel &channel);
+
+    virtual void Serialize(CVariant& value) const;
 
     /*! @name XBMC related channel methods
      */
@@ -322,8 +324,10 @@ namespace PVR
 
     /*!
      * @brief Update the path after the channel number in the internal group changed.
+     * @param group The internal group that contains this channel
+     * @param iNewChannelGroupPosition The new channel number in the group
      */
-    void UpdatePath(unsigned int iNewChannelNumber);
+    void UpdatePath(CPVRChannelGroupInternal* group, unsigned int iNewChannelGroupPosition);
 
     /*!
      * @brief Return true if this channel is encrypted.
@@ -367,6 +371,12 @@ namespace PVR
      * @return The ID of the EPG table to use for this channel or -1 if it isn't set.
      */
     int EpgID(void) const;
+
+    /*!
+     * @brief Change the id of the epg that is linked to this channel
+     * @param iEpgId The new epg id
+     */
+    void SetEpgID(int iEpgId);
 
     /*!
      * @brief Get the EPG table for this channel.

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -193,7 +192,7 @@ void CExternalPlayer::Process()
         while ((iStart = regExp.RegFind(mainFile, iStart)) > -1)
         {
           int iLength = regExp.GetFindLen();
-          mainFile = mainFile.Left(iStart) + regExp.GetReplaceString(strRep.c_str()) + mainFile.Mid(iStart+iLength);
+          mainFile = mainFile.Left(iStart) + regExp.GetReplaceString(strRep.c_str()).c_str() + mainFile.Mid(iStart+iLength);
           if (!bGlobal)
             break;
         }
@@ -293,7 +292,7 @@ void CExternalPlayer::Process()
   /* don't block external player's access to audio device  */
   if (!CAEFactory::Suspend())
   {
-    CLog::Log(LOGNOTICE, __FUNCTION__, "Failed to suspend AudioEngine before launching external player");
+    CLog::Log(LOGNOTICE,"%s: Failed to suspend AudioEngine before launching external player", __FUNCTION__);
   }
 
 
@@ -362,7 +361,7 @@ void CExternalPlayer::Process()
   /* Resume AE processing of XBMC native audio */
   if (!CAEFactory::Resume())
   {
-    CLog::Log(LOGFATAL, __FUNCTION__, "Failed to restart AudioEngine after return from external player");
+    CLog::Log(LOGFATAL, "%s: Failed to restart AudioEngine after return from external player",__FUNCTION__);
   }
 
   // We don't want to come back to an active screensaver

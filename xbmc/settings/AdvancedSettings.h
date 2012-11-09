@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -214,8 +213,8 @@ class CAdvancedSettings
     bool m_playlistAsFolders;
     bool m_detectAsUdf;
 
-    int m_fanartRes; ///< \brief the maximal resolution to cache fanart at (assumes 16x9)
-    int m_imageRes;  ///< \brief the maximal resolution to cache images at (assumes 16x9)
+    unsigned int m_fanartRes; ///< \brief the maximal resolution to cache fanart at (assumes 16x9)
+    unsigned int m_imageRes;  ///< \brief the maximal resolution to cache images at (assumes 16x9)
     /*! \brief the maximal size to cache thumbs at, assuming square
      Used for actual thumbs (eg bookmark thumbs, picture thumbs) rather than cover art which uses m_imageRes instead
      */
@@ -231,7 +230,6 @@ class CAdvancedSettings
     bool m_bFTPThumbs;
 
     CStdString m_musicThumbs;
-    CStdString m_dvdThumbs;
     CStdString m_fanartImages;
 
     bool m_bMusicLibraryHideAllItems;
@@ -248,7 +246,6 @@ class CAdvancedSettings
     bool m_bVideoLibraryHideAllItems;
     bool m_bVideoLibraryAllItemsOnBottom;
     int m_iVideoLibraryRecentlyAddedItems;
-    bool m_bVideoLibraryHideRecentlyAddedItems;
     bool m_bVideoLibraryHideEmptySeries;
     bool m_bVideoLibraryCleanOnUpdate;
     bool m_bVideoLibraryExportAutoThumbs;
@@ -349,6 +346,7 @@ class CAdvancedSettings
     bool m_guiVisualizeDirtyRegions;
     int  m_guiAlgorithmDirtyRegions;
     int  m_guiDirtyRegionNoFlipTimeout;
+    unsigned int m_addonPackageFolderSize;
 
     unsigned int m_cacheMemBufferSize;
 

@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -211,6 +210,21 @@ namespace PVR
      * @brief Close a PVR stream.
      */
     void CloseStream(void);
+
+    /*!
+     * @brief (Un)Pause a PVR stream (only called when timeshifting is supported)
+     */
+    void PauseStream(bool bPaused);
+
+    /*!
+     * @brief Check whether it is possible to pause the currently playing livetv or recording stream
+     */
+    bool CanPauseStream(void) const;
+
+    /*!
+     * @brief Check whether it is possible to seek the currently playing livetv or recording stream
+     */
+    bool CanSeekStream(void) const;
 
     /*!
      * @brief Get the properties of the current playing stream content.

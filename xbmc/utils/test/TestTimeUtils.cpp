@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,24 +26,24 @@
 TEST(TestTimeUtils, CurrentHostCounter)
 {
   std::cout << "CurrentHostCounter(): " <<
-    testing::PrintToString(CurrentHostCounter()) << "\n";
+    testing::PrintToString(CurrentHostCounter()) << std::endl;
 }
 
 TEST(TestTimeUtils, CurrentHostFrequency)
 {
   std::cout << "CurrentHostFrequency(): " <<
-    testing::PrintToString(CurrentHostFrequency()) << "\n";
+    testing::PrintToString(CurrentHostFrequency()) << std::endl;
 }
 
 TEST(TestTimeUtils, GetFrameTime)
 {
   std::cout << "GetFrameTime(): " <<
-    testing::PrintToString(CTimeUtils::GetFrameTime()) << "\n";
+    testing::PrintToString(CTimeUtils::GetFrameTime()) << std::endl;
 
-  std::cout << "Calling UpdateFrameTime()\n";
+  std::cout << "Calling UpdateFrameTime()" << std::endl;
   CTimeUtils::UpdateFrameTime(true);
   std::cout << "GetFrameTime(): " <<
-    testing::PrintToString(CTimeUtils::GetFrameTime()) << "\n";
+    testing::PrintToString(CTimeUtils::GetFrameTime()) << std::endl;
 }
 
 TEST(TestTimeUtils, GetLocalTime)
@@ -54,9 +53,9 @@ TEST(TestTimeUtils, GetLocalTime)
 
   cdatetime = CTimeUtils::GetLocalTime(time);
   std::cout << "cdatetime.GetAsLocalizedDateTime(): " <<
-    cdatetime.GetAsLocalizedDateTime() << "\n";
+    cdatetime.GetAsLocalizedDateTime() << std::endl;
 
   cdatetime2 = time;
   std::cout << "time: " <<
-    cdatetime2.GetAsLocalizedDateTime() << "\n";
+    cdatetime2.GetAsLocalizedDateTime() << std::endl;
 }

@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2011 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,8 @@ namespace PERIPHERALS
     FEATURE_NYXBOARD,
     FEATURE_CEC,
     FEATURE_BLUETOOTH,
-    FEATURE_TUNER
+    FEATURE_TUNER,
+    FEATURE_IMON
   };
 
   enum PeripheralType
@@ -60,7 +60,8 @@ namespace PERIPHERALS
     PERIPHERAL_NYXBOARD,
     PERIPHERAL_CEC,
     PERIPHERAL_BLUETOOTH,
-    PERIPHERAL_TUNER
+    PERIPHERAL_TUNER,
+    PERIPHERAL_IMON 
   };
 
   struct PeripheralID
@@ -100,6 +101,8 @@ namespace PERIPHERALS
         return "nyxboard";
       case PERIPHERAL_TUNER:
         return "tuner";
+      case PERIPHERAL_IMON:
+        return "imon";
       default:
         return "unknown";
       }
@@ -124,6 +127,8 @@ namespace PERIPHERALS
         return PERIPHERAL_NYXBOARD;
       else if (strTypeLowerCase.Equals("tuner"))
         return PERIPHERAL_TUNER;
+      else if (strTypeLowerCase.Equals("imon"))
+        return PERIPHERAL_IMON;
 
       return PERIPHERAL_UNKNOWN;
     };

@@ -15,19 +15,21 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "addons/include/xbmc_pvr_types.h"
 #include "XBDateTime.h"
+#include "utils/ISerializable.h"
 #include "utils/StringUtils.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 
 #include <boost/shared_ptr.hpp>
+
+#define EPG_DEBUGGING 0
 
 /** an EPG info tag */
 namespace EPG
@@ -37,7 +39,7 @@ namespace EPG
   class CEpgInfoTag;
   typedef boost::shared_ptr<EPG::CEpgInfoTag> CEpgInfoTagPtr;
 
-  class CEpgInfoTag
+  class CEpgInfoTag : public ISerializable
   {
     friend class CEpg;
     friend class CEpgDatabase;
@@ -68,6 +70,8 @@ namespace EPG
     bool operator !=(const CEpgInfoTag& right) const;
     CEpgInfoTag &operator =(const CEpgInfoTag &other);
 
+    virtual void Serialize(CVariant &value) const;
+
     /*!
      * @brief Check whether this tag has changed and unsaved values.
      * @return True if it has unsaved values, false otherwise.
@@ -94,6 +98,11 @@ namespace EPG
      * @return The current progress of this tag.
      */
     float ProgressPercentage(void) const;
+
+    /*!
+     * @return The current progress of this tag in seconds.
+     */
+    int Progress(void) const;
 
     /*!
      * @brief Get a pointer to the next event. Set by CEpg in a call to Sort()

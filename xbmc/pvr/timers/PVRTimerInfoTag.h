@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -99,7 +98,15 @@ namespace PVR
 
     void UpdateEpgEvent(bool bClear = false);
 
-    bool IsActive(void) const { return m_state == PVR_TIMER_STATE_SCHEDULED || m_state == PVR_TIMER_STATE_RECORDING; }
+    bool IsActive(void) const 
+    { 	
+      return m_state == PVR_TIMER_STATE_SCHEDULED 
+        || m_state == PVR_TIMER_STATE_RECORDING
+        || m_state == PVR_TIMER_STATE_CONFLICT_OK
+        || m_state == PVR_TIMER_STATE_CONFLICT_NOK
+        || m_state == PVR_TIMER_STATE_ERROR;
+    }
+
     bool IsRecording(void) const { return m_state == PVR_TIMER_STATE_RECORDING; }
 
     CDateTime StartAsUTC(void) const;

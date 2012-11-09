@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -407,14 +406,14 @@ unsigned int CAESinkOSS::AddPackets(uint8_t *data, unsigned int frames, bool has
   if (m_fd == -1)
   {
     CLog::Log(LOGERROR, "CAESinkOSS::AddPackets - Failed to write");
-    return frames;
+    return INT_MAX;
   }
 
   int wrote = write(m_fd, data, size);
   if (wrote < 0)
   {
     CLog::Log(LOGERROR, "CAESinkOSS::AddPackets - Failed to write");
-    return frames;
+    return INT_MAX;
   }
 
   return wrote / m_format.m_frameSize;

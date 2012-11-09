@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -279,7 +278,7 @@ void CGUISettings::Initialize()
   AddGroup(SETTINGS_WEATHER, 8);
   CSettingsCategory* wea = AddCategory(SETTINGS_WEATHER, "weather", 16000);
   AddInt(NULL, "weather.currentlocation", 0, 1, 1, 1, 3, SPIN_CONTROL_INT_PLUS);
-  AddDefaultAddon(wea, "weather.addon", 24027, "weather.wunderground", ADDON_SCRIPT_WEATHER);
+  AddDefaultAddon(wea, "weather.addon", 24029, "weather.wunderground", ADDON_SCRIPT_WEATHER);
   AddString(wea, "weather.addonsettings", 21417, "", BUTTON_CONTROL_STANDARD, true);
 
   // My Music Settings
@@ -380,7 +379,7 @@ void CGUISettings::Initialize()
   AddString(kar, "karaoke.font", 22030, "arial.ttf", SPIN_CONTROL_TEXT);
   AddInt(kar, "karaoke.fontheight", 22031, 36, 16, 2, 74, SPIN_CONTROL_TEXT); // use text as there is a disk based lookup needed
   map<int,int> colors;
-  for (int i = KARAOKE_COLOR_START; i <= KARAOKE_COLOR_END; i++)
+  for (int i = KARAOKE_COLOR_START; i < KARAOKE_COLOR_END; i++)
     colors.insert(make_pair(22040 + i, i));
   AddInt(kar, "karaoke.fontcolors", 22032, KARAOKE_COLOR_START, colors, SPIN_CONTROL_TEXT);
   AddString(kar, "karaoke.charset", 22033, "DEFAULT", SPIN_CONTROL_TEXT);
@@ -446,7 +445,7 @@ void CGUISettings::Initialize()
   AddInt(vs, "videoscreen.vsync", 13105, DEFAULT_VSYNC, vsync, SPIN_CONTROL_TEXT);
 
   AddString(vs, "videoscreen.guicalibration",214,"", BUTTON_CONTROL_STANDARD);
-#ifndef HAS_DX
+#if defined(HAS_GL)
   // Todo: Implement test pattern for DX
   AddString(vs, "videoscreen.testpattern",226,"", BUTTON_CONTROL_STANDARD);
 #endif
@@ -547,6 +546,8 @@ void CGUISettings::Initialize()
 #endif
 #if defined(HAS_SDL_JOYSTICK)
   AddBool(in, "input.enablejoystick", 35100, true);
+  AddBool(in, "input.disablejoystickwithimon", 35101, true);
+  GetSetting("input.disablejoystickwithimon")->SetVisible(false);
 #endif
 
   CSettingsCategory* net = AddCategory(SETTINGS_SYSTEM, "network", 798);
@@ -662,6 +663,9 @@ void CGUISettings::Initialize()
 
   CSettingsCategory* vp = AddCategory(SETTINGS_VIDEOS, "videoplayer", 14086);
 
+  AddBool(vp, "videoplayer.autoplaynextitem", 13433, false);
+  AddSeparator(vp, "videoplayer.sep1");
+
   map<int, int> renderers;
   renderers.insert(make_pair(13416, RENDER_METHOD_AUTO));
 
@@ -715,11 +719,7 @@ void CGUISettings::Initialize()
   adjustTypes.insert(make_pair(36036, ADJUST_REFRESHRATE_ON_STARTSTOP));
 
 #if !defined(TARGET_DARWIN_IOS)
-#if defined(TARGET_RASPBERRY_PI)
-  AddBool(vp, "videoplayer.adjustrefreshrate", 170, true);
-#else
   AddInt(vp, "videoplayer.adjustrefreshrate", 170, ADJUST_REFRESHRATE_OFF, adjustTypes, SPIN_CONTROL_TEXT);
-#endif
 //  AddBool(vp, "videoplayer.adjustrefreshrate", 170, false);
   AddInt(vp, "videoplayer.pauseafterrefreshchange", 13550, 0, 0, 1, MAXREFRESHCHANGEDELAY, SPIN_CONTROL_TEXT);
 #else
@@ -768,6 +768,7 @@ void CGUISettings::Initialize()
 #endif
   AddSeparator(vp, "videoplayer.sep5");
   AddBool(vp, "videoplayer.teletextenabled", 23050, true);
+  AddBool(vp, "Videoplayer.teletextscale", 23055, true);
 
   CSettingsCategory* vid = AddCategory(SETTINGS_VIDEOS, "myvideos", 14081);
 
@@ -824,6 +825,7 @@ void CGUISettings::Initialize()
 
   CSettingsCategory* srvUpnp = AddCategory(SETTINGS_SERVICE, "upnp", 20187);
   AddBool(srvUpnp, "services.upnpserver", 21360, false);
+  AddBool(srvUpnp, "services.upnpannounce", 20188, true);
   AddBool(srvUpnp, "services.upnprenderer", 21881, false);
 
 #ifdef HAS_WEB_SERVER
@@ -870,6 +872,7 @@ void CGUISettings::Initialize()
   AddGroup(SETTINGS_APPEARANCE, 480);
   CSettingsCategory* laf = AddCategory(SETTINGS_APPEARANCE,"lookandfeel", 166);
   AddDefaultAddon(laf, "lookandfeel.skin",166,DEFAULT_SKIN, ADDON_SKIN);
+  AddString(laf, "lookandfeel.skinsettings", 21417, "", BUTTON_CONTROL_STANDARD);
   AddString(laf, "lookandfeel.skintheme",15111,"SKINDEFAULT", SPIN_CONTROL_TEXT);
   AddString(laf, "lookandfeel.skincolors",14078, "SKINDEFAULT", SPIN_CONTROL_TEXT);
   AddString(laf, "lookandfeel.font",13303,"Default", SPIN_CONTROL_TEXT);
@@ -940,7 +943,7 @@ void CGUISettings::Initialize()
   AddBool(pvr, "pvrmanager.enabled", 449, false);
   AddSeparator(pvr, "pvrmanager.sep1");
   AddBool(pvr, "pvrmanager.syncchannelgroups", 19221, true);
-  AddBool(pvr, "pvrmanager.backendchannelorder", 19231, false);
+  AddBool(pvr, "pvrmanager.backendchannelorder", 19231, true);
   AddBool(pvr, "pvrmanager.usebackendchannelnumbers", 19234, false);
   AddSeparator(pvr, "pvrmanager.sep2");
   AddString(pvr, "pvrmanager.channelmanager", 19199, "", BUTTON_CONTROL_STANDARD);
@@ -960,10 +963,10 @@ void CGUISettings::Initialize()
   AddString(pvrm, "pvrmenu.searchicons", 19167, "", BUTTON_CONTROL_STANDARD);
 
   CSettingsCategory* pvre = AddCategory(SETTINGS_PVR, "epg", 19069);
-  AddInt(pvre, "epg.defaultguideview", 19065, GUIDE_VIEW_NOW, GUIDE_VIEW_CHANNEL, 1, GUIDE_VIEW_TIMELINE, SPIN_CONTROL_TEXT);
-  AddInt(pvre, "epg.daystodisplay", 19182, 2, 1, 1, 14, SPIN_CONTROL_INT_PLUS, MASK_DAYS);
+  AddInt(pvre, "epg.defaultguideview", 19065, GUIDE_VIEW_TIMELINE, GUIDE_VIEW_CHANNEL, 1, GUIDE_VIEW_TIMELINE, SPIN_CONTROL_TEXT);
+  AddInt(pvre, "epg.daystodisplay", 19182, 3, 1, 1, 14, SPIN_CONTROL_INT_PLUS, MASK_DAYS);
   AddSeparator(pvre, "epg.sep1");
-  AddInt(pvre, "epg.epgupdate", 19071, 120, 15, 15, 480, SPIN_CONTROL_INT_PLUS, MASK_MINS);
+  AddInt(pvre, "epg.epgupdate", 19071, 120, 15, 15, 2880, SPIN_CONTROL_INT_PLUS, MASK_MINS);
   AddBool(pvre, "epg.preventupdateswhileplayingtv", 19230, false);
   AddBool(pvre, "epg.ignoredbforclient", 19072, false);
   AddBool(pvre, "epg.hidenoinfoavailable", 19268, true);
@@ -975,11 +978,11 @@ void CGUISettings::Initialize()
   AddBool(pvrp, "pvrplayback.switchautoclose", 19168, true);
   AddBool(pvrp, "pvrplayback.signalquality", 19037, true);
   AddSeparator(pvrp, "pvrplayback.sep1");
-  AddInt(pvrp, "pvrplayback.scantime", 19170, 15, 1, 1, 60, SPIN_CONTROL_INT_PLUS, MASK_SECS);
+  AddInt(pvrp, "pvrplayback.scantime", 19170, 10, 1, 1, 60, SPIN_CONTROL_INT_PLUS, MASK_SECS);
   AddInt(pvrp, "pvrplayback.channelentrytimeout", 19073, 0, 0, 250, 2000, SPIN_CONTROL_INT_PLUS, MASK_MS);
 
   CSettingsCategory* pvrr = AddCategory(SETTINGS_PVR, "pvrrecord", 19043);
-  AddInt(pvrr, "pvrrecord.instantrecordtime", 19172, 180, 1, 1, 720, SPIN_CONTROL_INT_PLUS, MASK_MINS);
+  AddInt(pvrr, "pvrrecord.instantrecordtime", 19172, 120, 1, 1, 720, SPIN_CONTROL_INT_PLUS, MASK_MINS);
   AddInt(pvrr, "pvrrecord.defaultpriority", 19173, 50, 1, 1, 100, SPIN_CONTROL_INT_PLUS);
   AddInt(pvrr, "pvrrecord.defaultlifetime", 19174, 99, 1, 1, 365, SPIN_CONTROL_INT_PLUS, MASK_DAYS);
   AddInt(pvrr, "pvrrecord.marginstart", 19175, 2, 0, 1, 60, SPIN_CONTROL_INT_PLUS, MASK_MINS);
@@ -991,7 +994,7 @@ void CGUISettings::Initialize()
   AddBool(pvrpwr, "pvrpowermanagement.enabled", 305, false);
   AddSeparator(pvrpwr, "pvrpowermanagement.sep1");
   AddInt(pvrpwr, "pvrpowermanagement.backendidletime", 19244, 15, 0, 5, 360, SPIN_CONTROL_INT_PLUS, MASK_MINS, TEXT_OFF);
-  AddString(pvrpwr, "pvrpowermanagement.setwakeupcmd", 19245, "/usr/bin/setwakeup.sh", EDIT_CONTROL_INPUT, true);
+  AddString(pvrpwr, "pvrpowermanagement.setwakeupcmd", 19245, "", EDIT_CONTROL_INPUT, true);
   AddInt(pvrpwr, "pvrpowermanagement.prewakeup", 19246, 15, 0, 1, 60, SPIN_CONTROL_INT_PLUS, MASK_MINS, TEXT_OFF);
   AddSeparator(pvrpwr, "pvrpowermanagement.sep2");
   AddBool(pvrpwr, "pvrpowermanagement.dailywakeup", 19247, false);
@@ -1068,15 +1071,13 @@ void CGUISettings::AddBool(CSettingsCategory* cat, const char *strSetting, int i
 bool CGUISettings::GetBool(const char *strSetting) const
 {
   ASSERT(settingsMap.size());
-  CStdString lower(strSetting);
-  lower.ToLower();
-  constMapIter it = settingsMap.find(lower);
+  constMapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   { // old category
     return ((CSettingBool*)(*it).second)->GetData();
   }
   // Backward compatibility (skins use this setting)
-  if (lower == "lookandfeel.enablemouse")
+  if (strncmp(strSetting, "lookandfeel.enablemouse", 23) == 0)
     return GetBool("input.enablemouse");
   // Assert here and write debug output
   CLog::Log(LOGDEBUG,"Error: Requested setting (%s) was not found.  It must be case-sensitive", strSetting);
@@ -1086,7 +1087,7 @@ bool CGUISettings::GetBool(const char *strSetting) const
 void CGUISettings::SetBool(const char *strSetting, bool bSetting)
 {
   ASSERT(settingsMap.size());
-  mapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  mapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   { // old category
     ((CSettingBool*)(*it).second)->SetData(bSetting);
@@ -1126,7 +1127,7 @@ void CGUISettings::AddFloat(CSettingsCategory* cat, const char *strSetting, int 
 float CGUISettings::GetFloat(const char *strSetting) const
 {
   ASSERT(settingsMap.size());
-  constMapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  constMapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   {
     return ((CSettingFloat *)(*it).second)->GetData();
@@ -1140,7 +1141,7 @@ float CGUISettings::GetFloat(const char *strSetting) const
 void CGUISettings::SetFloat(const char *strSetting, float fSetting)
 {
   ASSERT(settingsMap.size());
-  mapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  mapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   {
     ((CSettingFloat *)(*it).second)->SetData(fSetting);
@@ -1156,7 +1157,7 @@ void CGUISettings::SetFloat(const char *strSetting, float fSetting)
 
 void CGUISettings::LoadMasterLock(TiXmlElement *pRootElement)
 {
-  std::map<CStdString,CSetting*>::iterator it = settingsMap.find("masterlock.maxretries");
+  mapIter it = settingsMap.find("masterlock.maxretries");
   if (it != settingsMap.end())
     LoadFromXML(pRootElement, it);
   it = settingsMap.find("masterlock.startuplock");
@@ -1200,7 +1201,7 @@ int CGUISettings::GetInt(const char *strSetting) const
 {
   ASSERT(settingsMap.size());
 
-  constMapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  constMapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   {
     return ((CSettingInt *)(*it).second)->GetData();
@@ -1214,7 +1215,7 @@ int CGUISettings::GetInt(const char *strSetting) const
 void CGUISettings::SetInt(const char *strSetting, int iSetting)
 {
   ASSERT(settingsMap.size());
-  mapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  mapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   {
     ((CSettingInt *)(*it).second)->SetData(iSetting);
@@ -1254,7 +1255,7 @@ void CGUISettings::AddDefaultAddon(CSettingsCategory* cat, const char *strSettin
 const CStdString &CGUISettings::GetString(const char *strSetting, bool bPrompt /* = true */) const
 {
   ASSERT(settingsMap.size());
-  constMapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  constMapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   {
     CSettingString* result = ((CSettingString *)(*it).second);
@@ -1288,7 +1289,7 @@ const CStdString &CGUISettings::GetString(const char *strSetting, bool bPrompt /
 void CGUISettings::SetString(const char *strSetting, const char *strData)
 {
   ASSERT(settingsMap.size());
-  mapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  mapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
   {
     ((CSettingString *)(*it).second)->SetData(strData);
@@ -1305,7 +1306,7 @@ void CGUISettings::SetString(const char *strSetting, const char *strData)
 CSetting *CGUISettings::GetSetting(const char *strSetting)
 {
   ASSERT(settingsMap.size());
-  mapIter it = settingsMap.find(CStdString(strSetting).ToLower());
+  mapIter it = settingsMap.find(strSetting);
   if (it != settingsMap.end())
     return (*it).second;
   else
@@ -1509,13 +1510,16 @@ RESOLUTION CGUISettings::GetResFromString(const CStdString &res)
     return RES_DESKTOP;
   else if (res == "WINDOW")
     return RES_WINDOW;
-  else if (res.GetLength()==20)
+  else if (res.GetLength() == 21)
   {
-    // format: SWWWWWHHHHHRRR.RRRRR, where S = screen, W = width, H = height, R = refresh
+    // format: SWWWWWHHHHHRRR.RRRRRP, where S = screen, W = width, H = height, R = refresh, P = interlace
     int screen = atol(res.Mid(0,1).c_str());
     int width = atol(res.Mid(1,5).c_str());
     int height = atol(res.Mid(6,5).c_str());
-    float refresh = (float)atof(res.Mid(11).c_str());
+    float refresh = (float)atof(res.Mid(11,9).c_str());
+    // look for 'i' and treat everything else as progressive,
+    // and use 100/200 to get a nice square_error.
+    int interlaced = (res.Right(1) == "i") ? 100:200;
     // find the closest match to these in our res vector.  If we have the screen, we score the res
     RESOLUTION bestRes = RES_DESKTOP;
     float bestScore = FLT_MAX;
@@ -1524,7 +1528,10 @@ RESOLUTION CGUISettings::GetResFromString(const CStdString &res)
       const RESOLUTION_INFO &info = g_settings.m_ResInfo[i];
       if (info.iScreen != screen)
         continue;
-      float score = 10*(square_error((float)info.iWidth, (float)width) + square_error((float)info.iHeight, (float)height)) + square_error(info.fRefreshRate, refresh);
+      float score = 10 * (square_error((float)info.iScreenWidth, (float)width) +
+        square_error((float)info.iScreenHeight, (float)height) +
+        square_error(info.fRefreshRate, refresh) +
+        square_error((float)((info.dwFlags & D3DPRESENTFLAG_INTERLACED) ? 100:200), (float)interlaced));
       if (score < bestScore)
       {
         bestScore = score;
@@ -1546,7 +1553,9 @@ void CGUISettings::SetResolution(RESOLUTION res)
   else if (res >= RES_CUSTOM && res < (RESOLUTION)g_settings.m_ResInfo.size())
   {
     const RESOLUTION_INFO &info = g_settings.m_ResInfo[res];
-    mode.Format("%1i%05i%05i%09.5f", info.iScreen, info.iWidth, info.iHeight, info.fRefreshRate);
+    mode.Format("%1i%05i%05i%09.5f%s", info.iScreen,
+      info.iScreenWidth, info.iScreenHeight, info.fRefreshRate,
+      (info.dwFlags & D3DPRESENTFLAG_INTERLACED) ? "i":"p");
   }
   else
   {

@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2009 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -14,9 +14,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 #include "Addon.h"
@@ -49,7 +48,7 @@ namespace ADDON
     virtual void SaveSettings();
     virtual CStdString GetSetting(const CStdString& key);
 
-    bool Create();
+    ADDON_STATUS Create();
     virtual void Stop();
     void Destroy();
 
@@ -201,13 +200,14 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::LoadDll()
 }
 
 template<class TheDll, typename TheStruct, typename TheProps>
-bool CAddonDll<TheDll, TheStruct, TheProps>::Create()
+ADDON_STATUS CAddonDll<TheDll, TheStruct, TheProps>::Create()
 {
+  ADDON_STATUS status(ADDON_STATUS_UNKNOWN);
   CLog::Log(LOGDEBUG, "ADDON: Dll Initializing - %s", Name().c_str());
   m_initialized = false;
 
   if (!LoadDll())
-    return false;
+    return ADDON_STATUS_PERMANENT_FAILURE;
 
   /* Allocate the helper function class to allow crosstalk over
      helper libraries */
@@ -217,13 +217,13 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::Create()
      needed to become the AddOn running */
   try
   {
-    ADDON_STATUS status = m_pDll->Create(m_pHelpers->GetCallbacks(), m_pInfo);
+    status = m_pDll->Create(m_pHelpers->GetCallbacks(), m_pInfo);
     if (status == ADDON_STATUS_OK)
       m_initialized = true;
     else if ((status == ADDON_STATUS_NEED_SETTINGS) || (status == ADDON_STATUS_NEED_SAVEDSETTINGS))
     {
       m_needsavedsettings = (status == ADDON_STATUS_NEED_SAVEDSETTINGS);
-      if (TransferSettings() == ADDON_STATUS_OK)
+      if ((status = TransferSettings()) == ADDON_STATUS_OK)
         m_initialized = true;
       else
         new CAddonStatusHandler(ID(), status, "", false);
@@ -239,10 +239,10 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::Create()
     HandleException(e, "m_pDll->Create");
   }
 
-  if  (!m_initialized)
+  if (!m_initialized)
     SAFE_DELETE(m_pHelpers);
 
-  return m_initialized;
+  return status;
 }
 
 template<class TheDll, typename TheStruct, typename TheProps>

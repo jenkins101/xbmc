@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -141,11 +140,6 @@ JSONRPC_STATUS CFileOperations::GetDirectory(const CStdString &method, ITranspor
         CFileItem fileItem;
         if (FillFileItem(items[i], fileItem, media))
         {
-          fileItem.m_bIsFolder = items[i]->m_bIsFolder;
-          fileItem.m_dateTime = items[i]->m_dateTime;
-          fileItem.m_dwSize = items[i]->m_dwSize;
-          fileItem.SetMimeType(items[i]->GetMimeType());
-
           if (items[i]->m_bIsFolder)
             filteredDirectories.Add(CFileItemPtr(new CFileItem(fileItem)));
           else
@@ -272,6 +266,9 @@ bool CFileOperations::FillFileItem(const CFileItemPtr &originalItem, CFileItem &
   if (originalItem.get() == NULL)
     return false;
 
+  // copy all the available details
+  item = *originalItem;
+
   bool status = false;
   CStdString strFilename = originalItem->GetPath();
   if (!strFilename.empty() && (CDirectory::Exists(strFilename) || CFile::Exists(strFilename)))
@@ -281,17 +278,31 @@ bool CFileOperations::FillFileItem(const CFileItemPtr &originalItem, CFileItem &
     else if (media.Equals("music"))
       status = CAudioLibrary::FillFileItem(strFilename, item);
 
-    if (!status)
+    if (status && item.GetLabel().empty())
     {
-      bool isDir = CDirectory::Exists(strFilename);
+      CStdString label = originalItem->GetLabel();
+      if (label.empty())
+      {
+        bool isDir = CDirectory::Exists(strFilename);
+        label = CUtil::GetTitleFromPath(strFilename, isDir);
+        if (label.empty())
+          label = URIUtils::GetFileName(strFilename);
+      }
+
+      item.SetLabel(label);
+    }
+    else if (!status)
+    {
       if (originalItem->GetLabel().empty())
       {
+        bool isDir = CDirectory::Exists(strFilename);
         CStdString label = CUtil::GetTitleFromPath(strFilename, isDir);
         if (label.empty())
           return false;
 
-        item = CFileItem(strFilename, isDir);
         item.SetLabel(label);
+        item.SetPath(strFilename);
+        item.m_bIsFolder = isDir;
       }
       else
         item = *originalItem.get();

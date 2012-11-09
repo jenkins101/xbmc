@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,6 +54,9 @@ void CDatabaseManager::Initialize(bool addonsOnly)
   if (addonsOnly)
     return;
   CLog::Log(LOGDEBUG, "%s, updating databases...", __FUNCTION__);
+
+  // NOTE: Order here is important. In particular, CTextureDatabase has to be updated
+  //       before CVideoDatabase.
   { CViewDatabase db; UpdateDatabase(db); }
   { CTextureDatabase db; UpdateDatabase(db); }
   { CMusicDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseMusic); }

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -154,9 +153,7 @@ BOOL   FindNextFile(HANDLE hHandle, LPWIN32_FIND_DATA lpFindData)
 
   struct stat64 fileStat;
   memset(&fileStat, 0, sizeof(fileStat));
- 
-  if (stat64(strFileNameTest, &fileStat) == -1)
-    return FALSE;
+  stat64(strFileNameTest, &fileStat);
 
   bool bIsDir = false;
   if (S_ISDIR(fileStat.st_mode))
@@ -451,27 +448,34 @@ BOOL CopyFile(LPCTSTR lpExistingFileName, LPCTSTR lpNewFileName, BOOL bFailIfExi
     }
   }
 
+  // Read and write chunks of 16K
+  char buf[16384];
+  int64_t bytesRead = 1;
+  int64_t bytesWritten = 1;
+
   if (sf != -1 && df != -1)
   {
-    // Read and write chunks of 16K
-    char buf[16384];
-    int64_t bytesRead = 1;
-    int64_t bytesWritten = 1;
-
     while (bytesRead > 0 && bytesWritten > 0)
     {
       bytesRead = read(sf, buf, sizeof(buf));
       if (bytesRead > 0)
         bytesWritten = write(df, buf, bytesRead);
     }
-
-    // Done
-    close(sf);
-    close(df);
-    
-    if (bytesRead == -1 || bytesWritten == -1)
-      return 0;
   }
+  else
+  {
+    bytesRead = -1;
+    bytesWritten = -1;
+  }
+
+  // Done
+  if (sf != -1)  
+    close(sf);
+  if (df != -1)
+    close(df);
+
+  if (bytesRead == -1 || bytesWritten == -1)
+    return 0;
   return 1;
 }
 

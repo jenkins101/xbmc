@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -15,9 +15,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,6 @@
 #define HAS_SCREENSAVER
 #define HAS_PYTHON
 #define HAS_SYSINFO
-#define HAS_UPNP
 #define HAS_VIDEO_PLAYBACK
 #define HAS_VISUALISATION
 #define HAS_PVRCLIENTS
@@ -47,7 +45,6 @@
 #endif
 
 #define HAS_JSONRPC
-#define HAS_HTTPAPI
 
 #ifdef USE_ASAP_CODEC
 #define HAS_ASAP_CODEC
@@ -83,6 +80,10 @@
 
 #ifdef HAVE_MYSQL
   #define HAS_MYSQL
+#endif
+
+#if defined(USE_UPNP)
+  #define HAS_UPNP
 #endif
 
 /**********************
@@ -124,6 +125,7 @@
 #define HAVE_LIBMP3LAME
 #define HAVE_LIBVORBISENC
 #define HAS_MYSQL
+#define HAS_UPNP
 
 #define DECLARE_UNUSED(a,b) a b;
 #endif
@@ -141,6 +143,7 @@
   #endif
   #define HAS_ZEROCONF
   #define HAS_LINUX_NETWORK
+  #define HAS_LCD
 #endif
 
 /*****************

@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,10 +30,12 @@
 #include "AudioLibrary.h"
 #include "VideoLibrary.h"
 #include "GUIOperations.h"
+#include "AddonsOperations.h"
 #include "SystemOperations.h"
 #include "InputOperations.h"
 #include "XBMCOperations.h"
 #include "ApplicationOperations.h"
+#include "PVROperations.h"
 
 using namespace std;
 using namespace JSONRPC;
@@ -63,24 +64,15 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "Player.Stop",                                  CPlayerOperations::Stop },
   { "Player.SetSpeed",                              CPlayerOperations::SetSpeed },
   { "Player.Seek",                                  CPlayerOperations::Seek },
-
-  { "Player.MoveLeft",                              CPlayerOperations::MoveLeft },
-  { "Player.MoveRight",                             CPlayerOperations::MoveRight },
-  { "Player.MoveDown",                              CPlayerOperations::MoveDown },
-  { "Player.MoveUp",                                CPlayerOperations::MoveUp },
-
-  { "Player.ZoomOut",                               CPlayerOperations::ZoomOut },
-  { "Player.ZoomIn",                                CPlayerOperations::ZoomIn },
+  { "Player.Move",                                  CPlayerOperations::Move },
   { "Player.Zoom",                                  CPlayerOperations::Zoom },
   { "Player.Rotate",                                CPlayerOperations::Rotate },
   
   { "Player.Open",                                  CPlayerOperations::Open },
-  { "Player.GoPrevious",                            CPlayerOperations::GoPrevious },
-  { "Player.GoNext",                                CPlayerOperations::GoNext },
   { "Player.GoTo",                                  CPlayerOperations::GoTo },
-  { "Player.Shuffle",                               CPlayerOperations::Shuffle },
-  { "Player.UnShuffle",                             CPlayerOperations::UnShuffle },
-  { "Player.Repeat",                                CPlayerOperations::Repeat },
+  { "Player.SetShuffle",                            CPlayerOperations::SetShuffle },
+  { "Player.SetRepeat",                             CPlayerOperations::SetRepeat },
+  { "Player.SetPartymode",                          CPlayerOperations::SetPartymode },
   
   { "Player.SetAudioStream",                        CPlayerOperations::SetAudioStream },
   { "Player.SetSubtitle",                           CPlayerOperations::SetSubtitle },
@@ -148,11 +140,27 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "VideoLibrary.Scan",                            CVideoLibrary::Scan },
   { "VideoLibrary.Export",                          CVideoLibrary::Export },
   { "VideoLibrary.Clean",                           CVideoLibrary::Clean },
+  
+// Addon operations
+  { "Addons.GetAddons",                             CAddonsOperations::GetAddons },
+  { "Addons.GetAddonDetails",                       CAddonsOperations::GetAddonDetails },
+  { "Addons.SetAddonEnabled",                       CAddonsOperations::SetAddonEnabled },
+  { "Addons.ExecuteAddon",                          CAddonsOperations::ExecuteAddon },
 
 // GUI operations
   { "GUI.GetProperties",                            CGUIOperations::GetProperties },
+  { "GUI.ActivateWindow",                           CGUIOperations::ActivateWindow },
   { "GUI.ShowNotification",                         CGUIOperations::ShowNotification },
   { "GUI.SetFullscreen",                            CGUIOperations::SetFullscreen },
+
+// PVR operations
+  { "PVR.GetProperties",                            CPVROperations::GetProperties },
+  { "PVR.GetChannelGroups",                         CPVROperations::GetChannelGroups },
+  { "PVR.GetChannelGroupDetails",                   CPVROperations::GetChannelGroupDetails },
+  { "PVR.GetChannels",                              CPVROperations::GetChannels },
+  { "PVR.GetChannelDetails",                        CPVROperations::GetChannelDetails },
+  { "PVR.Record",                                   CPVROperations::Record },
+  { "PVR.Scan",                                     CPVROperations::Scan },
 
 // System operations
   { "System.GetProperties",                         CSystemOperations::GetProperties },

@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -15,14 +15,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "GUIWindowVideoBase.h"
-#include "ThumbLoader.h"
 
 class CFileItemList;
 
@@ -48,6 +46,11 @@ protected:
    \param items the items to load information for.
    */
   void LoadVideoInfo(CFileItemList &items);
+
+  /*! \brief Pop up a fanart chooser. Does not utilise remote URLs.
+   \param videoItem the item to choose fanart for.
+   */
+  void OnChooseFanart(const CFileItem &videoItem);
 
   bool ApplyWatchedFilter(CFileItemList &items);
   virtual bool GetFilteredItems(const CStdString &filter, CFileItemList &items);

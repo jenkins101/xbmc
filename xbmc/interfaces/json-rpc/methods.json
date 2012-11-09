@@ -44,7 +44,10 @@
         "Navigate": { "type": "boolean", "required": true },
         "WriteFile": { "type": "boolean", "required": true },
         "ControlSystem": { "type": "boolean", "required": true },
-        "ControlGUI": { "type": "boolean", "required": true }
+        "ControlGUI": { "type": "boolean", "required": true },
+        "ManageAddon": { "type": "boolean", "required": true },
+        "ExecuteAddon": { "type": "boolean", "required": true },
+        "ControlPVR": { "type": "boolean", "required": true }
       }
     }
   },
@@ -73,11 +76,13 @@
       { "name": "notifications", "type": "object",
         "properties": {
           "Player": { "$ref": "Optional.Boolean" },
+          "Playlist": { "$ref": "Optional.Boolean" },
           "GUI": { "$ref": "Optional.Boolean" },
           "System": { "$ref": "Optional.Boolean" },
           "AudioLibrary": { "$ref": "Optional.Boolean" },
           "VideoLibrary": { "$ref": "Optional.Boolean" },
           "Application": { "$ref": "Optional.Boolean" },
+          "Input": { "$ref": "Optional.Boolean" },
           "Other": { "$ref": "Optional.Boolean" }
         }
       }
@@ -116,6 +121,20 @@
               "path": { "type": "string", "required": true },
               "random": { "type": "boolean", "default": true, "description": "Deprecated, use the shuffled property of the options parameter instead" },
               "recursive": { "type": "boolean", "default": true }
+            }
+          },
+          { "type": "object", "required": true, "additionalProperties": false,
+            "properties": {
+              "partymode": { "type": [
+                  { "type": "string", "required": true, "enum": [ "music", "video" ] },
+                  { "type": "string", "required": true, "minLength": 5, "description": "Path to a smartplaylist (*.xsp) file" }
+                ]
+              }
+            }
+          },
+          { "type": "object", "required": true, "additionalProperties": false,
+            "properties": {
+              "channelid": { "$ref": "Library.Id", "required": true }
             }
           }
         ]
@@ -240,74 +259,29 @@
       }
     }
   },
-  "Player.MoveLeft": {
+  "Player.Move": {
     "type": "method",
-    "description": "If picture is zoomed move viewport left otherwise skip previous",
+    "description": "If picture is zoomed move viewport left/right/up/down otherwise skip previous/next",
     "transport": "Response",
     "permission": "ControlPlayback",
     "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
-    ],
-    "returns": "string"
-  },
-  "Player.MoveRight": {
-    "type": "method",
-    "description": "If picture is zoomed move viewport right otherwise skip next",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
-    ],
-    "returns": "string"
-  },
-  "Player.MoveDown": {
-    "type": "method",
-    "description": "If picture is zoomed move viewport down",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
-    ],
-    "returns": "string"
-  },
-  "Player.MoveUp": {
-    "type": "method",
-    "description": "If picture is zoomed move viewport up",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
-    ],
-    "returns": "string"
-  },
-  "Player.ZoomOut": {
-    "type": "method",
-    "description": "Zoom out once",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
-    ],
-    "returns": "string"
-  },
-  "Player.ZoomIn": {
-    "type": "method",
-    "description": "Zoom in once",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
+      { "name": "playerid", "$ref": "Player.Id", "required": true },
+      { "name": "direction", "type": "string", "enum": [ "left", "right", "up", "down" ], "required": true }
     ],
     "returns": "string"
   },
   "Player.Zoom": {
     "type": "method",
-    "description": "Zooms current picture",
+    "description": "Zoom current picture",
     "transport": "Response",
     "permission": "ControlPlayback",
     "params": [
       { "name": "playerid", "$ref": "Player.Id", "required": true },
-      { "name": "value", "type": "integer", "required": true, "minimum": 1, "maximum": 10, "description": "Zoom level" }
+      { "name": "zoom", "type": [
+          { "type": "string", "enum": [ "in", "out" ], "required": true },
+          { "type": "integer", "minimum": 1, "maximum": 10, "description": "zoom level", "required": true }
+        ],
+      "required": true }
     ],
     "returns": "string"
   },
@@ -317,70 +291,61 @@
     "transport": "Response",
     "permission": "ControlPlayback",
     "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
+      { "name": "playerid", "$ref": "Player.Id", "required": true },
       { "name": "value", "type": "string", "enum": [ "clockwise", "counterclockwise" ], "default": "clockwise" }
-    ],
-    "returns": "string"
-  },
-  "Player.GoPrevious": {
-    "type": "method",
-    "description": "Go to previous item on the playlist",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
-    ],
-    "returns": "string"
-  },
-  "Player.GoNext": {
-    "type": "method",
-    "description": "Go to next item on the playlist",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
     ],
     "returns": "string"
   },
   "Player.GoTo": {
     "type": "method",
-    "description": "Go to item at the given position in the playlist",
+    "description": "Go to previous/next/specific item in the playlist",
     "transport": "Response",
     "permission": "ControlPlayback",
     "params": [
       { "name": "playerid", "$ref": "Player.Id", "required": true },
-      { "name": "position", "$ref": "Playlist.Position", "required": true }
+      { "name": "to", "type": [
+          { "type": "string", "enum": [ "previous", "next" ], "required": true },
+          { "$ref": "Playlist.Position", "description": "position in playlist", "required": true }
+        ],
+      "required": true }
     ],
     "returns": "string"
   },
-  "Player.Shuffle": {
+  "Player.SetShuffle": {
     "type": "method",
-    "description": "Shuffle items in the player",
+    "description": "Shuffle/Unshuffle items in the player",
     "transport": "Response",
     "permission": "ControlPlayback",
     "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
+      { "name": "playerid", "$ref": "Player.Id", "required": true },
+  { "name": "shuffle", "$ref": "Global.Toggle", "required": true }
     ],
     "returns": "string"
   },
-  "Player.UnShuffle": {
-    "type": "method",
-    "description": "Unshuffle items in the player",
-    "transport": "Response",
-    "permission": "ControlPlayback",
-    "params": [
-      { "name": "playerid", "$ref": "Player.Id", "required": true }
-    ],
-    "returns": "string"
-  },
-  "Player.Repeat": {
+  "Player.SetRepeat": {
     "type": "method",
     "description": "Set the repeat mode of the player",
     "transport": "Response",
     "permission": "ControlPlayback",
     "params": [
       { "name": "playerid", "$ref": "Player.Id", "required": true },
-      { "name": "state", "$ref": "Player.Repeat", "required": true }
+      { "name": "repeat", "type": [
+          { "$ref": "Player.Repeat", "required": true },
+          { "type": "string", "enum": [ "cycle" ], "required": true }
+        ],
+        "required": true
+      }
+    ],
+    "returns": "string"
+  },
+  "Player.SetPartymode": {
+    "type": "method",
+    "description": "Turn partymode on or off",
+    "transport": "Response",
+    "permission": "ControlPlayback",
+    "params": [
+      { "name": "playerid", "$ref": "Player.Id", "required": true },
+      { "name": "partymode", "$ref": "Global.Toggle", "required": true }
     ],
     "returns": "string"
   },
@@ -1051,6 +1016,7 @@
           { "type": "object", "properties": { "year": { "type": "integer", "minimum": 0, "required": true } }, "additionalProperties": false },
           { "type": "object", "properties": { "actor": { "type": "string", "minLength": 1, "required": true } }, "additionalProperties": false },
           { "type": "object", "properties": { "studio": { "type": "string", "minLength": 1, "required": true } }, "additionalProperties": false },
+          { "type": "object", "properties": { "tag": { "type": "string", "minLength": 1, "required": true } }, "additionalProperties": false },
           { "$ref": "List.Filter.TVShows" }
         ]
       }
@@ -1162,6 +1128,7 @@
           { "type": "object", "properties": { "year": { "type": "integer", "minimum": 0, "required": true } }, "additionalProperties": false },
           { "type": "object", "properties": { "director": { "type": "string", "minLength": 1, "required": true } }, "additionalProperties": false },
           { "type": "object", "properties": { "studio": { "type": "string", "minLength": 1, "required": true } }, "additionalProperties": false },
+          { "type": "object", "properties": { "tag": { "type": "string", "minLength": 1, "required": true } }, "additionalProperties": false },
           { "$ref": "List.Filter.MusicVideos" }
         ]
       }
@@ -1300,7 +1267,8 @@
       { "name": "showlink", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
       { "name": "thumbnail", "$ref": "Optional.String" },
       { "name": "fanart", "$ref": "Optional.String" },
-      { "name": "tag", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null }
+      { "name": "tag", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
+      { "name": "art", "type": [ "null", { "$ref": "Media.Artwork", "required": true } ], "default": null }
     ],
     "returns": "string"
   },
@@ -1326,7 +1294,9 @@
       { "name": "sorttitle", "$ref": "Optional.String" },
       { "name": "episodeguide", "$ref": "Optional.String" },
       { "name": "thumbnail", "$ref": "Optional.String" },
-      { "name": "fanart", "$ref": "Optional.String" }
+      { "name": "fanart", "$ref": "Optional.String" },
+      { "name": "tag", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
+      { "name": "art", "type": [ "null", { "$ref": "Media.Artwork", "required": true } ], "default": null }
     ],
     "returns": "string"
   },
@@ -1352,7 +1322,8 @@
       { "name": "episode", "$ref": "Optional.Integer" },
       { "name": "originaltitle", "$ref": "Optional.String" },
       { "name": "thumbnail", "$ref": "Optional.String" },
-      { "name": "fanart", "$ref": "Optional.String" }
+      { "name": "fanart", "$ref": "Optional.String" },
+      { "name": "art", "type": [ "null", { "$ref": "Media.Artwork", "required": true } ], "default": null }
     ],
     "returns": "string"
   },
@@ -1376,7 +1347,9 @@
       { "name": "track", "$ref": "Optional.Integer" },
       { "name": "lastplayed", "$ref": "Optional.String" },
       { "name": "thumbnail", "$ref": "Optional.String" },
-      { "name": "fanart", "$ref": "Optional.String" }
+      { "name": "fanart", "$ref": "Optional.String" },
+      { "name": "tag", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
+      { "name": "art", "type": [ "null", { "$ref": "Media.Artwork", "required": true } ], "default": null }
     ],
     "returns": "string"
   },
@@ -1462,6 +1435,17 @@
     "params": [ ],
     "returns": "string"
   },
+  "GUI.ActivateWindow": {
+    "type": "method",
+    "description": "Activates the given window",
+    "transport": "Response",
+    "permission": "ControlGUI",
+    "params": [
+      { "name": "window", "$ref": "GUI.Window", "required": true },
+      { "name": "parameters", "type": "array", "items": { "type": "string", "minLength": 1, "required": true }, "minItems": 1 }
+    ],
+    "returns": "string"
+  },
   "GUI.ShowNotification": {
     "type": "method",
     "description": "Shows a GUI notification",
@@ -1477,7 +1461,7 @@
       },
       { "name": "displaytime", "type": "integer", "minimum": 1500, "default": 5000, "description": "The time in milliseconds the notification will be visible" }
     ],
-    "returns":  { "$ref": "System.Property.Value", "required": true }
+    "returns": "string"
   },
   "GUI.GetProperties": {
     "type": "method",
@@ -1498,6 +1482,176 @@
       { "name": "fullscreen", "required": true, "$ref": "Global.Toggle" }
     ],
     "returns": { "type": "boolean", "description": "Fullscreen state" }
+  },
+  "Addons.GetAddons": {
+    "type": "method",
+    "description": "Gets all available addons",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "type", "$ref": "Addon.Types" },
+      { "name": "content", "$ref": "Addon.Content", "description": "Content provided by the addon. Only considered for plugins and scripts." },
+      { "name": "enabled", "type": [ { "type": "boolean" }, { "type": "string", "enum": [ "all" ] } ], "default": "all" },
+      { "name": "properties", "$ref": "Addon.Fields" },
+      { "name": "limits", "$ref": "List.Limits" }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "limits": { "$ref": "List.LimitsReturned", "required": true },
+        "addons": { "type": "array",
+          "items": { "$ref": "Addon.Details" }
+        }
+      }
+    }
+  },
+  "Addons.GetAddonDetails": {
+    "type": "method",
+    "description": "Gets the details of a specific addon",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "addonid", "type": "string", "required": true },
+      { "name": "properties", "$ref": "Addon.Fields" }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "limits": { "$ref": "List.LimitsReturned", "required": true },
+        "addon": { "$ref": "Addon.Details", "required": true }
+      }
+    }
+  },
+  "Addons.SetAddonEnabled": {
+    "type": "method",
+    "description": "Enables/Disables a specific addon",
+    "transport": "Response",
+    "permission": "ManageAddon",
+    "params": [
+      { "name": "addonid", "type": "string", "required": true },
+      { "name": "enabled", "$ref": "Global.Toggle", "required": true }
+    ],
+    "returns": "string"
+  },
+  "Addons.ExecuteAddon": {
+    "type": "method",
+    "description": "Executes the given addon with the given parameters (if possible)",
+    "transport": "Response",
+    "permission": "ExecuteAddon",
+    "params": [
+      { "name": "addonid", "type": "string", "required": true },
+      { "name": "params", "type": [
+          { "type": "object", "additionalProperties": { "type": "string" } },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      },
+      { "name": "wait", "type": "boolean", "default": false }
+    ],
+    "returns": "string"
+  },
+  "PVR.GetProperties": {
+    "type": "method",
+    "description": "Retrieves the values of the given properties",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "properties", "type": "array", "uniqueItems": true, "required": true, "items": { "$ref": "PVR.Property.Name" } }
+    ],
+    "returns":  { "$ref": "PVR.Property.Value", "required": true }
+  },
+  "PVR.GetChannelGroups": {
+    "type": "method",
+    "description": "Retrieves the channel groups for the specified type",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "channeltype", "$ref": "PVR.Channel.Type", "required": true },
+      { "name": "limits", "$ref": "List.Limits" }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "limits": { "$ref": "List.LimitsReturned", "required": true },
+        "channelgroups": { "type": "array", "required": true,
+          "items": { "$ref": "PVR.Details.ChannelGroup" }
+        }
+      }
+    }
+  },
+  "PVR.GetChannelGroupDetails": {
+    "type": "method",
+    "description": "Retrieves the details of a specific channel group",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "channelgroupid", "$ref": "PVR.ChannelGroup.Id", "required": true },
+      { "name": "channels", "type": "object",
+        "properties": {
+          "properties": { "$ref": "PVR.Fields.Channel" },
+          "limits": { "$ref": "List.Limits" }
+        }
+      }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "channelgroupdetails": { "$ref": "PVR.Details.ChannelGroup.Extended" }
+      }
+    }
+  },
+  "PVR.GetChannels": {
+    "type": "method",
+    "description": "Retrieves the channel list",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "channelgroupid", "$ref": "PVR.ChannelGroup.Id", "required": true },
+      { "name": "properties", "$ref": "PVR.Fields.Channel" },
+      { "name": "limits", "$ref": "List.Limits" }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "limits": { "$ref": "List.LimitsReturned", "required": true },
+        "channels": { "type": "array", "required": true,
+          "items": { "$ref": "PVR.Details.Channel" }
+        }
+      }
+    }
+  },
+  "PVR.GetChannelDetails": {
+    "type": "method",
+    "description": "Retrieves the details of a specific channel",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "channelid", "$ref": "Library.Id", "required": true },
+      { "name": "properties", "$ref": "PVR.Fields.Channel" }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "channeldetails": { "$ref": "PVR.Details.Channel" }
+      }
+    }
+  },
+  "PVR.Record": {
+    "type": "method",
+    "description": "Toggle recording of a channel",
+    "transport": "Response",
+    "permission": "ControlPVR",
+    "params": [
+      { "name": "record", "$ref": "Global.Toggle", "default": "toggle" },
+      { "name": "channel", "type": [
+          { "type": "string", "enum": [ "current" ], "required": true },
+          { "$ref": "Library.Id", "required": true }
+        ],
+        "default": "current"
+      }
+    ],
+    "returns":  "string"
+  },
+  "PVR.Scan": {
+    "type": "method",
+    "description": "Starts a channel scan",
+    "transport": "Response",
+    "permission": "ControlPVR",
+    "params": [ ],
+    "returns":  "string"
   },
   "System.GetProperties": {
     "type": "method",
@@ -1555,7 +1709,7 @@
     "transport": "Response",
     "permission": "Navigate",
     "params": [
-      { "name": "text", "type": "string", "minLength": 1, "required": true, "description": "Unicode text" },
+      { "name": "text", "type": "string", "required": true, "description": "Unicode text" },
       { "name": "done", "type": "boolean", "default": true, "description": "Whether this is the whole input or not (closes an open input dialog if true)." }
     ],
     "returns": "string"
@@ -1711,7 +1865,8 @@
     ],
     "returns": {
       "type": "object",
-      "description": "List of key-value pairs of the retrieved info labels"
+      "description": "Object containing key-value pairs of the retrieved info labels",
+      "additionalProperties": { "type": "string" }
     }
   },
   "XBMC.GetInfoBooleans": {
@@ -1724,7 +1879,8 @@
     ],
     "returns": {
       "type": "object",
-      "description": "List of key-value pairs of the retrieved info booleans"
+      "description": "Object containing key-value pairs of the retrieved info booleans",
+      "additionalProperties": { "type": "string" }
     }
   }
 }

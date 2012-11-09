@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,7 +82,7 @@ void CPVRChannelGroupInternal::UpdateChannelPaths(void)
   for (unsigned int iChannelPtr = 0; iChannelPtr < m_members.size(); iChannelPtr++)
   {
     PVRChannelGroupMember member = m_members.at(iChannelPtr);
-    member.channel->UpdatePath(iChannelPtr);
+    member.channel->UpdatePath(this, iChannelPtr);
   }
 }
 
@@ -95,15 +94,11 @@ void CPVRChannelGroupInternal::UpdateFromClient(const CPVRChannel &channel, unsi
     realChannel->UpdateFromClient(channel);
   else
   {
-    PVRChannelGroupMember newMember = { CPVRChannelPtr(new CPVRChannel(channel)), iChannelNumber > 0 ? iChannelNumber : m_members.size() + 1 };
+    PVRChannelGroupMember newMember = { CPVRChannelPtr(new CPVRChannel(channel)), iChannelNumber > 0l ? iChannelNumber : (int)m_members.size() + 1 };
     m_members.push_back(newMember);
     m_bChanged = true;
 
-    if (m_bUsingBackendChannelOrder)
-      SortByClientChannelNumber();
-    else
-      SortByChannelNumber();
-    Renumber();
+    SortAndRenumber();
   }
 }
 
@@ -143,7 +138,7 @@ bool CPVRChannelGroupInternal::AddToGroup(CPVRChannel &channel, int iChannelNumb
   }
 
   /* move this channel and persist */
-  bReturn = (iChannelNumber > 0) ?
+  bReturn = (iChannelNumber > 0l) ?
     MoveChannel(realChannel->ChannelNumber(), iChannelNumber, true) :
     MoveChannel(realChannel->ChannelNumber(), m_members.size() - m_iHiddenChannels, true);
 
@@ -182,7 +177,7 @@ bool CPVRChannelGroupInternal::RemoveFromGroup(const CPVRChannel &channel)
   }
 
   /* renumber this list */
-  Renumber();
+  SortAndRenumber();
 
   /* and persist */
   return realChannel->Persist() &&
@@ -265,7 +260,7 @@ bool CPVRChannelGroupInternal::Renumber(void)
     if (m_members.at(iChannelPtr).channel->IsHidden())
       m_iHiddenChannels++;
     else
-      m_members.at(iChannelPtr).channel->UpdatePath(iChannelPtr);
+      m_members.at(iChannelPtr).channel->UpdatePath(this, iChannelPtr);
   }
 
   return bReturn;

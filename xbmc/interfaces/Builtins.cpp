@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,14 +13,14 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "system.h"
 #include "utils/AlarmClock.h"
+#include "utils/Screenshot.h"
 #include "Application.h"
 #include "ApplicationMessenger.h"
 #include "Autorun.h"
@@ -31,10 +31,8 @@
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "dialogs/GUIDialogKaiToast.h"
-#include "music/dialogs/GUIDialogMusicScan.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogProgress.h"
-#include "video/dialogs/GUIDialogVideoScan.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "GUIUserMessages.h"
 #include "windows/GUIWindowLoginScreen.h"
@@ -55,6 +53,7 @@
 #include "utils/URIUtils.h"
 #include "Util.h"
 #include "URL.h"
+#include "music/MusicDatabase.h"
 
 #include "filesystem/PluginDirectory.h"
 #ifdef HAS_FILESYSTEM_RAR
@@ -214,6 +213,8 @@ const BUILT_IN commands[] = {
 #endif
   { "VideoLibrary.Search",        false,  "Brings up a search dialog which will search the library" },
   { "ToggleDebug",                false,  "Enables/disables debug mode" },
+  { "StartPVRManager",            false,  "(Re)Starts the PVR manager" },
+  { "StopPVRManager",             false,  "Stops the PVR manager" },
 };
 
 bool CBuiltins::HasCommand(const CStdString& execString)
@@ -297,8 +298,7 @@ int CBuiltins::Execute(const CStdString& execString)
         && (g_settings.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE
             || g_passwordManager.IsProfileLockUnlocked(index,bCanceled,prompt)))
     {
-
-      CGUIWindowLoginScreen::LoadProfile(index);
+      CApplicationMessenger::Get().LoadProfile(index);
     }
   }
   else if (execute.Equals("mastermode"))
@@ -322,7 +322,7 @@ int CBuiltins::Execute(const CStdString& execString)
   }
   else if (execute.Equals("takescreenshot"))
   {
-    CUtil::TakeScreenshot();
+    CScreenShot::TakeScreenshot();
   }
   else if (execute.Equals("activatewindow") || execute.Equals("replacewindow"))
   {
@@ -520,15 +520,21 @@ int CBuiltins::Execute(const CStdString& execString)
         {
           if (plugin->Provides(CPluginSource::VIDEO))
             cmd.Format("ActivateWindow(Video,plugin://%s,return)",params[0]);
-          if (plugin->Provides(CPluginSource::AUDIO))
+          else if (plugin->Provides(CPluginSource::AUDIO))
             cmd.Format("ActivateWindow(Music,plugin://%s,return)",params[0]);
-          if (plugin->Provides(CPluginSource::EXECUTABLE))
+          else if (plugin->Provides(CPluginSource::EXECUTABLE))
             cmd.Format("ActivateWindow(Programs,plugin://%s,return)",params[0]);
-          if (plugin->Provides(CPluginSource::IMAGE))
+          else if (plugin->Provides(CPluginSource::IMAGE))
             cmd.Format("ActivateWindow(Pictures,plugin://%s,return)",params[0]);
+          else
+            // Pass the script name (params[0]) and all the parameters
+            // (params[1] ... params[x]) separated by a comma to RunPlugin
+            cmd.Format("RunPlugin(%s)", StringUtils::JoinString(params, ","));
         }
-        if (addon->Type() == ADDON_SCRIPT)
-          cmd.Format("RunScript(%s)",params[0]);
+        else if (addon->Type() >= ADDON_SCRIPT && addon->Type() <= ADDON_SCRIPT_LYRICS)
+          // Pass the script name (params[0]) and all the parameters
+          // (params[1] ... params[x]) separated by a comma to RunScript
+          cmd.Format("RunScript(%s)", StringUtils::JoinString(params, ","));
 
         return Execute(cmd);
       }
@@ -768,13 +774,7 @@ int CBuiltins::Execute(const CStdString& execString)
     else if( parameter.Equals("record") )
     {
       if( g_application.IsPlaying() && g_application.m_pPlayer && g_application.m_pPlayer->CanRecord())
-      {
-#ifdef HAS_WEB_SERVER_BROADCAST
-        if (m_pXbmcHttp && g_settings.m_HttpApiBroadcastLevel>=1)
-          CApplicationMessenger::Get().HttpApi(g_application.m_pPlayer->IsRecording()?"broadcastlevel; RecordStopping;1":"broadcastlevel; RecordStarting;1");
-#endif
         g_application.m_pPlayer->Record(!g_application.m_pPlayer->IsRecording());
-      }
     }
     else if (parameter.Left(9).Equals("partymode"))
     {
@@ -944,7 +944,7 @@ int CBuiltins::Execute(const CStdString& execString)
 #ifdef HAS_DVD_DRIVE
   else if (execute.Equals("ejecttray"))
   {
-    CIoSupport::ToggleTray();
+    g_mediaManager.ToggleTray();
   }
 #endif
   else if( execute.Equals("alarmclock") && params.size() > 1 )
@@ -1189,6 +1189,19 @@ int CBuiltins::Execute(const CStdString& execString)
     else // execute.Equals("skin.setpath"))
     {
       g_mediaManager.GetNetworkLocations(localShares);
+      if (params.size() > 1)
+      {
+        value = params[1];
+        URIUtils::AddSlashAtEnd(value);
+        bool bIsSource;
+        if (CUtil::GetMatchingSource(value,localShares,bIsSource) < 0) // path is outside shares - add it as a separate one
+        {
+          CMediaSource share;
+          share.strName = g_localizeStrings.Get(13278);
+          share.strPath = value;
+          localShares.push_back(share);
+        }
+      }
       if (CGUIDialogFileBrowser::ShowAndGetDirectory(localShares, g_localizeStrings.Get(1031), value))
         g_settings.SetSkinString(string, value);
     }
@@ -1230,27 +1243,16 @@ int CBuiltins::Execute(const CStdString& execString)
   }
   else if (execute.Equals("system.logoff"))
   {
-    if (g_windowManager.GetActiveWindow() == WINDOW_LOGIN_SCREEN)
+    if (g_windowManager.GetActiveWindow() == WINDOW_LOGIN_SCREEN ||
+        !g_settings.UsingLoginScreen())
       return -1;
 
     g_application.StopPlaying();
     if (g_application.IsMusicScanning())
-    {
       g_application.StopMusicScan();
-      CGUIDialogMusicScan *musicScan = (CGUIDialogMusicScan *)g_windowManager.GetWindow(WINDOW_DIALOG_MUSIC_SCAN);
-      if (musicScan)
-        musicScan->Close(true);
-    }
 
     if (g_application.IsVideoScanning())
-    {
       g_application.StopVideoScan();
-      CGUIDialogVideoScan *videoScan = (CGUIDialogVideoScan *)g_windowManager.GetWindow(WINDOW_DIALOG_VIDEO_SCAN);
-      if (videoScan)
-      {
-        videoScan->Close(true);
-      }
-    }
 
     ADDON::CAddonMgr::Get().StopServices(true);
 
@@ -1620,6 +1622,14 @@ int CBuiltins::Execute(const CStdString& execString)
     bool debug = g_guiSettings.GetBool("debug.showloginfo");
     g_guiSettings.SetBool("debug.showloginfo", !debug);
     g_advancedSettings.SetDebugMode(!debug);
+  }
+  else if (execute.Equals("startpvrmanager"))
+  {
+    g_application.StartPVRManager();
+  }
+  else if (execute.Equals("stoppvrmanager"))
+  {
+    g_application.StopPVRManager();
   }
   else
     return -1;
